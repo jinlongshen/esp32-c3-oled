@@ -1,0 +1,51 @@
+BasedOnStyle: LLVM
+
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+
+BreakBeforeBraces: Allman
+AllowShortFunctionsOnASingleLine: None
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
+
+NamespaceIndentation: None
+IndentExternBlock: NoIndent
+
+MaxEmptyLinesToKeep: 1
+
+AlignTrailingComments: true
+SpacesBeforeTrailingComments: 1
+ReflowComments: false
+
+BreakConstructorInitializers: BeforeComma
+ConstructorInitializerIndentWidth: 0
+
+AlwaysBreakTemplateDeclarations: No
+BinPackParameters: true
+BinPackArguments: true
+IndentWrappedFunctionNames: false
+
+PointerAlignment: Left
+ReferenceAlignment: Left
+
+SpaceBeforeParens: ControlStatements
+SpacesInParentheses: false
+SpacesInSquareBrackets: false
+
+SortIncludes: true
+IncludeBlocks: Regroup
+
+IncludeCategories:
+  - Regex: '^"[^"]*\.h"$'
+    Priority: 1
+    SortPriority: 0
+
+  - Regex: '^<.*>$'
+    Priority: 2
+    SortPriority: 1
+
+  - Regex: '.*'
+    Priority: 3
+    SortPriority: 2
+
