@@ -15,7 +15,7 @@ void app_main()
 
     muc::ssd1306::Oled oled;
     oled.drawVisibleBar();
-    oled.drawCharA(16, 12);
+    oled.drawCharA(32, 12);
     while (true)
     {
         vTaskDelay(1000 / portTICK_PERIOD_MS);

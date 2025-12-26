@@ -5,7 +5,7 @@
 #include <cstdint>
 
 #include "driver/gpio.h"
-#include "driver/i2c.h"
+#include "driver/i2c_master.h"
 #include "esp_err.h"
 
 namespace muc
@@ -27,6 +27,9 @@ class Oled
     esp_err_t sendData(const std::uint8_t* data, std::size_t length) noexcept;
     void setPageColumn(std::uint8_t page, std::uint8_t column) noexcept;
     void initialize() noexcept;
+
+    i2c_master_bus_handle_t m_bus_handle;
+    i2c_master_dev_handle_t m_dev_handle;
 
     // Board pins (Abrobot ESP32-C3 0.42" OLED)
     static constexpr gpio_num_t OLED_SDA_PIN = GPIO_NUM_5;

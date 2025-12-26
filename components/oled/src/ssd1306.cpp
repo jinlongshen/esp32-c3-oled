@@ -16,7 +16,9 @@ namespace muc
 namespace ssd1306
 {
 
-Oled::Oled() noexcept
+Oled::Oled()
+: m_bus_handle(nullptr)
+, m_dev_handle(nullptr)
 {
     initI2C();
     ping();
@@ -47,101 +49,69 @@ void Oled::drawCharA(int x, int y)
 
 void Oled::initI2C()
 {
-    ESP_LOGI(TAG,
-             "Starting SSD1306 test for Abrobot 0.42\" OLED (classic I2C)");
-    i2c_config_t conf = {};
-    conf.mode = I2C_MODE_MASTER;
-    conf.sda_io_num = OLED_SDA_PIN;
-    conf.scl_io_num = OLED_SCL_PIN;
-    conf.sda_pullup_en = GPIO_PULLUP_ENABLE;
-    conf.scl_pullup_en = GPIO_PULLUP_ENABLE;
-    conf.master.clk_speed = OLED_I2C_FREQ;
-#if SOC_I2C_SUPPORT_REF_TICK
-    conf.clk_flags = 0; // use default clock source
-#endif
-    ESP_ERROR_CHECK(i2c_param_config(s_OLED_I2C_PORT, &conf));
-    ESP_ERROR_CHECK(i2c_driver_install(s_OLED_I2C_PORT, conf.mode, 0, 0, 0));
-    ESP_LOGI(TAG, "I2C master initialized on port %d", s_OLED_I2C_PORT);
+    ESP_LOGI(TAG, "Initializing I2C master (new ESP-IDF 6.x API)");
+
+    i2c_master_bus_config_t bus_cfg = {};
+
+    bus_cfg.clk_source = I2C_CLK_SRC_DEFAULT;
+    bus_cfg.i2c_port = s_OLED_I2C_PORT;
+    bus_cfg.sda_io_num = OLED_SDA_PIN;
+    bus_cfg.scl_io_num = OLED_SCL_PIN;
+    bus_cfg.glitch_ignore_cnt = 7;
+    bus_cfg.flags.enable_internal_pullup = true;
+
+    ESP_ERROR_CHECK(i2c_new_master_bus(&bus_cfg, &m_bus_handle));
+
+    i2c_device_config_t dev_cfg = {};
+    dev_cfg.device_address = OLED_ADDR;
+    dev_cfg.scl_speed_hz = OLED_I2C_FREQ;
+
+    ESP_ERROR_CHECK(
+        i2c_master_bus_add_device(m_bus_handle, &dev_cfg, &m_dev_handle));
+
+    ESP_LOGI(TAG, "I2C master initialized (bus=%p, dev=%p)", m_bus_handle,
+             m_dev_handle);
 }
 
 void Oled::ping()
 {
-    std::uint8_t ping_buf[2] = {0x00, 0x00};
-    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-    esp_err_t ping_err = ESP_OK;
-    ping_err |= i2c_master_start(cmd);
-    ping_err |=
-        i2c_master_write_byte(cmd, (OLED_ADDR << 1) | I2C_MASTER_WRITE, true);
-    ping_err |= i2c_master_write(cmd, ping_buf, sizeof(ping_buf), true);
-    ping_err |= i2c_master_stop(cmd);
-    if (ping_err == ESP_OK)
-    {
-        ping_err = i2c_master_cmd_begin(s_OLED_I2C_PORT, cmd,
-                                        100 / portTICK_PERIOD_MS);
-    }
-    i2c_cmd_link_delete(cmd);
-    ESP_LOGI(TAG, "Ping transmit result: %s", esp_err_to_name(ping_err));
+    uint8_t buf[2] = {0x00, 0x00};
+    esp_err_t err = i2c_master_transmit(m_dev_handle, buf, sizeof(buf), -1);
+
+    ESP_LOGI(TAG, "Ping result: %s", esp_err_to_name(err));
 }
 
-esp_err_t Oled::sendCmd(std::uint8_t c)
+esp_err_t Oled::sendCmd(uint8_t c)
 {
-    std::uint8_t buf[2] = {0x00, c};
-    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-    if (!cmd)
-    {
-        return ESP_FAIL;
-    }
-    esp_err_t err = ESP_OK;
-    err |= i2c_master_start(cmd);
-    err |=
-        i2c_master_write_byte(cmd, (OLED_ADDR << 1) | I2C_MASTER_WRITE, true);
-    err |= i2c_master_write(cmd, buf, sizeof(buf), true);
-    err |= i2c_master_stop(cmd);
-    if (err == ESP_OK)
-    {
-        err = i2c_master_cmd_begin(s_OLED_I2C_PORT, cmd,
-                                   100 / portTICK_PERIOD_MS);
-    }
-    i2c_cmd_link_delete(cmd);
+    uint8_t buf[2] = {0x00, c}; // control byte + command
+    esp_err_t err = i2c_master_transmit(m_dev_handle, buf, sizeof(buf), -1);
+
     if (err != ESP_OK)
     {
-        ESP_LOGE(TAG, "cmd 0x%02X failed: %s", c, esp_err_to_name(err));
+        ESP_LOGE(TAG, "sendCmd(0x%02X) failed: %s", c, esp_err_to_name(err));
     }
     return err;
 }
 
-esp_err_t Oled::sendData(const std::uint8_t* data, std::size_t len)
+esp_err_t Oled::sendData(const uint8_t* data, size_t len)
 {
     if (len > SSD1306_WIDTH)
-    {
         len = SSD1306_WIDTH;
-    }
-    std::uint8_t buf[1 + SSD1306_WIDTH];
-    buf[0] = 0x40;
-    std::memcpy(&buf[1], data, len);
-    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-    if (!cmd)
-    {
-        return ESP_FAIL;
-    }
-    esp_err_t err = ESP_OK;
-    err |= i2c_master_start(cmd);
-    err |=
-        i2c_master_write_byte(cmd, (OLED_ADDR << 1) | I2C_MASTER_WRITE, true);
-    err |= i2c_master_write(cmd, buf, 1 + len, true);
-    err |= i2c_master_stop(cmd);
-    if (err == ESP_OK)
-    {
-        err = i2c_master_cmd_begin(s_OLED_I2C_PORT, cmd,
-                                   100 / portTICK_PERIOD_MS);
-    }
-    i2c_cmd_link_delete(cmd);
+
+    uint8_t buf[1 + SSD1306_WIDTH];
+    buf[0] = 0x40; // control byte for data
+    memcpy(&buf[1], data, len);
+
+    esp_err_t err = i2c_master_transmit(m_dev_handle, buf, 1 + len, -1);
+
     if (err != ESP_OK)
     {
-        ESP_LOGE(TAG, "data len %d failed: %s", (int)len, esp_err_to_name(err));
+        ESP_LOGE(TAG, "sendData(len=%d) failed: %s", (int)len,
+                 esp_err_to_name(err));
     }
     return err;
 }
+
 void Oled::setPageColumn(std::uint8_t page, std::uint8_t column)
 {
     page &= 0x07;
