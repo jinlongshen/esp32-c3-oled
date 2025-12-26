@@ -36,16 +36,31 @@ SpacesInSquareBrackets: false
 SortIncludes: true
 IncludeBlocks: Regroup
 
+# ---------------------------------------------------------------------------
+# Include ordering rules:
+#   1. Module header (same name as the current file)
+#   2. Standard C headers (<stdio.h>, <stdint.h>, ...)
+#   3. Standard C++ headers (<vector>, <string>, ...)
+#   4. Everything else (esp_log.h, driver headers, project headers)
+# ---------------------------------------------------------------------------
+
 IncludeCategories:
-  - Regex: '^"[^"]*\.h"$'
+  # 1. Module header: "ssd1306.h" when editing ssd1306.cpp
+  - Regex: '^"ssd1306\.h"$'
     Priority: 1
     SortPriority: 0
 
-  - Regex: '^<.*>$'
+  # 2. Standard C headers: <xxx.h>
+  - Regex: '^<[a-z0-9_]+\.h>$'
     Priority: 2
     SortPriority: 1
 
-  - Regex: '.*'
+  # 3. Standard C++ headers: <vector>, <string>, <map>, <algorithm>, ...
+  - Regex: '^<[a-zA-Z][a-zA-Z0-9_]*>$'
     Priority: 3
     SortPriority: 2
 
+  # 4. Everything else (esp_log.h, driver headers, project headers)
+  - Regex: '.*'
+    Priority: 4
+    SortPriority: 3
