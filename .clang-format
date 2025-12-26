@@ -38,20 +38,20 @@ IncludeBlocks: Regroup
 
 # ---------------------------------------------------------------------------
 # Include ordering rules:
-#   1. Module header (same name as the current file)
+#   1. Module header (X.h in X.c or X.cpp)
 #   2. Standard C headers (<stdio.h>, <stdint.h>, ...)
 #   3. Standard C++ headers (<vector>, <string>, ...)
-#   4. Everything else (esp_log.h, driver headers, project headers)
+#   4. Everything else (FreeRTOS, ESP-IDF, project headers)
 # ---------------------------------------------------------------------------
 
 IncludeCategories:
-  # 1. Module header: "ssd1306.h" when editing ssd1306.cpp
-  - Regex: '^"ssd1306\.h"$'
+  # 1. Module header: "foo.h" when editing foo.c or foo.cpp
+  - Regex: '^"{file_base}\\.h"$'
     Priority: 1
     SortPriority: 0
 
   # 2. Standard C headers: <xxx.h>
-  - Regex: '^<[a-z0-9_]+\.h>$'
+  - Regex: '^<[a-z0-9_]+\\.h>$'
     Priority: 2
     SortPriority: 1
 
@@ -60,7 +60,7 @@ IncludeCategories:
     Priority: 3
     SortPriority: 2
 
-  # 4. Everything else (esp_log.h, driver headers, project headers)
+  # 4. Everything else (FreeRTOS, ESP-IDF, project headers)
   - Regex: '.*'
     Priority: 4
     SortPriority: 3

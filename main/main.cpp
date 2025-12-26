@@ -1,11 +1,5 @@
-extern "C"
-{
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-
-#include <string.h>
-}
-
 #include "ssd1306.h"
 
 extern "C" void app_main(void);
