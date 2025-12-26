@@ -153,38 +153,56 @@ void Oled::setPageColumn(std::uint8_t page, std::uint8_t column)
 
 void Oled::initialize()
 {
-    sendCmd(0xAE);
-    sendCmd(0xD5);
-    sendCmd(0x80);
-    sendCmd(0xA8);
-    sendCmd(0x3F);
-    sendCmd(0xD3);
-    sendCmd(0x00);
-    sendCmd(0x40);
-    sendCmd(0x8D);
-    sendCmd(0x14);
-    sendCmd(0x20);
-    sendCmd(0x00);
-    sendCmd(0xA1);
-    sendCmd(0xC8);
-    sendCmd(0xDA);
-    sendCmd(0x12);
-    sendCmd(0x81);
-    sendCmd(0x7F);
-    sendCmd(0xD9);
-    sendCmd(0xF1);
-    sendCmd(0xDB);
-    sendCmd(0x40);
-    sendCmd(0xA4);
-    sendCmd(0xA6);
+    sendCmd(0xAE); // Display OFF
+
+    sendCmd(0xD5); // Set Display Clock Divide Ratio / Oscillator Frequency
+    sendCmd(0x80); //   Suggested default value
+
+    sendCmd(0xA8); // Set Multiplex Ratio
+    sendCmd(0x3F); //   0x3F = 63 → 64 rows (for 128x64 panel)
+
+    sendCmd(0xD3); // Set Display Offset
+    sendCmd(0x00); //   No offset
+
+    sendCmd(0x40); // Set Display Start Line = 0
+
+    sendCmd(0x8D); // Charge Pump Setting
+    sendCmd(0x14); //   Enable charge pump (0x14 = ON)
+
+    sendCmd(0x20); // Set Memory Addressing Mode
+    sendCmd(0x00); //   Horizontal addressing mode
+
+    sendCmd(0xA1); // Set Segment Re-map (mirror horizontally)
+
+    sendCmd(0xC8); // Set COM Output Scan Direction (remapped mode)
+
+    sendCmd(0xDA); // Set COM Pins Hardware Configuration
+    sendCmd(0x12); //   Alternative COM pin config, disable left/right remap
+
+    sendCmd(0x81); // Set Contrast Control
+    sendCmd(0x7F); //   Medium contrast (0x00–0xFF)
+
+    sendCmd(0xD9); // Set Pre-charge Period
+    sendCmd(0xF1); //   Phase 1 = 15, Phase 2 = 1 (recommended)
+
+    sendCmd(0xDB); // Set VCOMH Deselect Level
+    sendCmd(0x40); //   ~0.77 × Vcc (recommended)
+
+    sendCmd(0xA4); // Entire Display ON (resume RAM content)
+
+    sendCmd(0xA6); // Set Normal Display (not inverted)
+
+    // Clear display RAM
     std::uint8_t zeros[SSD1306_WIDTH];
     std::memset(zeros, 0x00, sizeof(zeros));
+
     for (int page = 0; page < SSD1306_PAGES; ++page)
     {
-        setPageColumn(page, 0);
-        sendData(zeros, SSD1306_WIDTH);
+        setPageColumn(page, 0);         // Set page + column to start of line
+        sendData(zeros, SSD1306_WIDTH); // Clear one full row
     }
-    sendCmd(0xAF);
+
+    sendCmd(0xAF); // Display ON
 }
 
 } // namespace ssd1306
