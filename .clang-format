@@ -22,8 +22,21 @@ BreakConstructorInitializers: BeforeComma
 ConstructorInitializerIndentWidth: 0
 
 AlwaysBreakTemplateDeclarations: No
-BinPackParameters: true
-BinPackArguments: true
+
+# ---------------------------------------------------------------------------
+# Function signature formatting
+# ---------------------------------------------------------------------------
+
+# Keep return type and function name on the same line
+AlwaysBreakAfterReturnType: None
+AlwaysBreakAfterDefinitionReturnType: None
+PenaltyReturnTypeOnItsOwnLine: 1000
+
+# Break parameters one-per-line when too long
+BinPackParameters: false
+BinPackArguments: false
+AllowAllParametersOfDeclarationOnNextLine: false
+
 IndentWrappedFunctionNames: false
 
 PointerAlignment: Left
