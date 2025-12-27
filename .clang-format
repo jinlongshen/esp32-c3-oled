@@ -27,12 +27,10 @@ AlwaysBreakTemplateDeclarations: No
 # Function signature formatting
 # ---------------------------------------------------------------------------
 
-# Keep return type and function name on the same line
 AlwaysBreakAfterReturnType: None
 AlwaysBreakAfterDefinitionReturnType: None
 PenaltyReturnTypeOnItsOwnLine: 1000
 
-# Break parameters one-per-line when too long
 BinPackParameters: false
 BinPackArguments: false
 AllowAllParametersOfDeclarationOnNextLine: false
@@ -46,34 +44,40 @@ SpaceBeforeParens: ControlStatements
 SpacesInParentheses: false
 SpacesInSquareBrackets: false
 
-SortIncludes: true
-IncludeBlocks: Regroup
+# ---------------------------------------------------------------------------
+# Include handling
+# ---------------------------------------------------------------------------
+
+# IMPORTANT:
+# - SortIncludes=false ensures clang-format NEVER reorders inside a block.
+# - IncludeBlocks=Preserve ensures clang-format NEVER moves headers across blank lines.
+# This gives you full manual control over your 4 include groups.
+
+SortIncludes: false
+IncludeBlocks: Preserve
 
 # ---------------------------------------------------------------------------
-# Include ordering rules:
-#   1. Module header (X.h in X.c or X.cpp)
-#   2. Standard C headers (<stdio.h>, <stdint.h>, ...)
-#   3. Standard C++ headers (<vector>, <string>, ...)
-#   4. Everything else (FreeRTOS, ESP-IDF, project headers)
+# Include ordering rules (kept for reference only; inactive because SortIncludes=false)
+#
+# 1. Module header: "foo.h" when editing foo.c or foo.cpp
+# 2. Standard C headers: <xxx.h>
+# 3. Standard C++ headers: <vector>, <array>, <span>, ...
+# 4. Everything else (ESP-IDF, FreeRTOS, project headers)
 # ---------------------------------------------------------------------------
 
 IncludeCategories:
-  # 1. Module header: "foo.h" when editing foo.c or foo.cpp
   - Regex: '^"{file_base}\\.h"$'
     Priority: 1
     SortPriority: 0
 
-  # 2. Standard C headers: <xxx.h>
   - Regex: '^<[a-z0-9_]+\\.h>$'
     Priority: 2
     SortPriority: 1
 
-  # 3. Standard C++ headers: <vector>, <string>, <map>, <algorithm>, ...
   - Regex: '^<[a-zA-Z][a-zA-Z0-9_]*>$'
     Priority: 3
     SortPriority: 2
 
-  # 4. Everything else (FreeRTOS, ESP-IDF, project headers)
   - Regex: '.*'
     Priority: 4
     SortPriority: 3

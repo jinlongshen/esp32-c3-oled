@@ -30,8 +30,7 @@ I2CDevice::~I2CDevice() noexcept
 
 esp_err_t I2CDevice::write(std::span<const std::uint8_t> data) noexcept
 {
-    return i2c_master_transmit(
-        m_dev, data.data(), data.size(), I2C_MASTER_TIMEOUT_MS);
+    return i2c_master_transmit(m_dev, data.data(), data.size(), -1);
 }
 
 } // namespace muc

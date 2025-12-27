@@ -1,9 +1,11 @@
 #include "ssd1306.h"
 
+#include <algorithm>
 #include <array>
 #include <cstdint>
 #include <cstring>
 
+#include "I2CDevice.h"
 #include "esp_log.h"
 
 namespace
@@ -16,13 +18,17 @@ namespace muc
 namespace ssd1306
 {
 
-Oled::Oled()
-: m_bus_handle(nullptr)
-, m_dev_handle(nullptr)
+Oled::Oled(II2CDevice& dev)
+: m_dev(dev)
 {
-    initI2C();
-    ping();
     initialize();
+}
+
+esp_err_t Oled::sendCmd(Command c) noexcept
+{
+    std::uint8_t buf[2] = {
+        0x00, static_cast<std::uint8_t>(c)}; // control byte + command
+    return m_dev.write(std::span<const std::uint8_t>(buf, 2));
 }
 
 void Oled::drawVisibleBar() noexcept
@@ -30,83 +36,50 @@ void Oled::drawVisibleBar() noexcept
     std::uint8_t page = (OLED_Y_OFFSET / 8);
     std::array<std::uint8_t, 32> bar;
     bar.fill(0xFF);
+
     setPageColumn(page, OLED_X_OFFSET);
-    sendData(bar.data(), bar.size());
-    ESP_LOGI(TAG, "Drew white bar at x=%d..%d, page=%d (y≈%d..%d)",
-             OLED_X_OFFSET, OLED_X_OFFSET + bar.size() - 1, page, page * 8,
+    sendData(bar);
+
+    ESP_LOGI(TAG,
+             "Drew white bar at x=%d..%d, page=%d (y≈%d..%d)",
+             OLED_X_OFFSET,
+             OLED_X_OFFSET + bar.size() - 1,
+             page,
+             page * 8,
              page * 8 + 7);
 }
 
 void Oled::drawCharA(int x, int y)
 {
-    constexpr std::array<std::uint8_t, 5> A_5x8 = {0x7C, 0x12, 0x11, 0x12,
-                                                   0x7C};
+    constexpr std::array<std::uint8_t, 5> A_5x8 = {
+        0x7C, 0x12, 0x11, 0x12, 0x7C};
+
     const int page = (OLED_Y_OFFSET + y) / 8;
     const int column = OLED_X_OFFSET + x;
+
     setPageColumn(page, column);
-    sendData(A_5x8.data(), 5);
+
+    sendData(A_5x8);
 }
 
-void Oled::initI2C()
+esp_err_t Oled::sendData(std::span<const std::uint8_t> data) noexcept
 {
-    ESP_LOGI(TAG, "Initializing I2C master (new ESP-IDF 6.x API)");
-
-    i2c_master_bus_config_t bus_cfg = {};
-
-    bus_cfg.clk_source = I2C_CLK_SRC_DEFAULT;
-    bus_cfg.i2c_port = s_OLED_I2C_PORT;
-    bus_cfg.sda_io_num = OLED_SDA_PIN;
-    bus_cfg.scl_io_num = OLED_SCL_PIN;
-    bus_cfg.glitch_ignore_cnt = 7;
-    bus_cfg.flags.enable_internal_pullup = true;
-
-    ESP_ERROR_CHECK(i2c_new_master_bus(&bus_cfg, &m_bus_handle));
-
-    i2c_device_config_t dev_cfg = {};
-    dev_cfg.device_address = OLED_ADDR;
-    dev_cfg.scl_speed_hz = OLED_I2C_FREQ;
-
-    ESP_ERROR_CHECK(
-        i2c_master_bus_add_device(m_bus_handle, &dev_cfg, &m_dev_handle));
-
-    ESP_LOGI(TAG, "I2C master initialized (bus=%p, dev=%p)", m_bus_handle,
-             m_dev_handle);
-}
-
-void Oled::ping()
-{
-    uint8_t buf[2] = {0x00, 0x00};
-    esp_err_t err = i2c_master_transmit(m_dev_handle, buf, sizeof(buf), -1);
-
-    ESP_LOGI(TAG, "Ping result: %s", esp_err_to_name(err));
-}
-
-esp_err_t Oled::sendCmd(uint8_t c)
-{
-    uint8_t buf[2] = {0x00, c}; // control byte + command
-    esp_err_t err = i2c_master_transmit(m_dev_handle, buf, sizeof(buf), -1);
-
-    if (err != ESP_OK)
+    if (data.size() > SSD1306_WIDTH)
     {
-        ESP_LOGE(TAG, "sendCmd(0x%02X) failed: %s", c, esp_err_to_name(err));
+        data = data.first(SSD1306_WIDTH);
     }
-    return err;
-}
 
-esp_err_t Oled::sendData(const uint8_t* data, size_t len)
-{
-    if (len > SSD1306_WIDTH)
-        len = SSD1306_WIDTH;
+    std::array<std::uint8_t, 1 + SSD1306_WIDTH> buf{};
+    buf[0] = 0x40;
+    std::copy(data.begin(), data.end(), buf.begin() + 1);
 
-    uint8_t buf[1 + SSD1306_WIDTH];
-    buf[0] = 0x40; // control byte for data
-    memcpy(&buf[1], data, len);
-
-    esp_err_t err = i2c_master_transmit(m_dev_handle, buf, 1 + len, -1);
-
+    auto err =
+        m_dev.write(std::span<const uint8_t>(buf.data(), 1 + data.size()));
     if (err != ESP_OK)
     {
-        ESP_LOGE(TAG, "sendData(len=%d) failed: %s", (int)len,
+        ESP_LOGE(TAG,
+                 "sendData(len=%u) failed: %s",
+                 static_cast<unsigned>(data.size()),
                  esp_err_to_name(err));
     }
     return err;
@@ -116,63 +89,69 @@ void Oled::setPageColumn(std::uint8_t page, std::uint8_t column)
 {
     page &= 0x07;
     column &= 0x7F;
-    sendCmd(0xB0 | page);
-    sendCmd(0x00 | (column & 0x0F));
-    sendCmd(0x10 | ((column >> 4) & 0x0F));
+    sendCmd(static_cast<Command>(0xB0 | page));
+    sendCmd(static_cast<Command>(0x00 | (column & 0x0F)));
+    sendCmd(static_cast<Command>(0x10 | ((column >> 4) & 0x0F)));
 }
 
-void Oled::initialize()
+void Oled::initialize() noexcept
 {
-    sendCmd(0xAE); // Display OFF
+    using C = Command;
 
-    sendCmd(0xD5); // Set Display Clock Divide Ratio / Oscillator Frequency
-    sendCmd(0x80); //   Suggested default value
-
-    sendCmd(0xA8); // Set Multiplex Ratio
-    sendCmd(0x3F); //   0x3F = 63 → 64 rows (for 128x64 panel)
-
-    sendCmd(0xD3); // Set Display Offset
-    sendCmd(0x00); //   No offset
-
-    sendCmd(0x40); // Set Display Start Line = 0
-
-    sendCmd(0x8D); // Charge Pump Setting
-    sendCmd(0x14); //   Enable charge pump (0x14 = ON)
-
-    sendCmd(0x20); // Set Memory Addressing Mode
-    sendCmd(0x00); //   Horizontal addressing mode
-
-    sendCmd(0xA1); // Set Segment Re-map (mirror horizontally)
-
-    sendCmd(0xC8); // Set COM Output Scan Direction (remapped mode)
-
-    sendCmd(0xDA); // Set COM Pins Hardware Configuration
-    sendCmd(0x12); //   Alternative COM pin config, disable left/right remap
-
-    sendCmd(0x81); // Set Contrast Control
-    sendCmd(0x7F); //   Medium contrast (0x00–0xFF)
-
-    sendCmd(0xD9); // Set Pre-charge Period
-    sendCmd(0xF1); //   Phase 1 = 15, Phase 2 = 1 (recommended)
-
-    sendCmd(0xDB); // Set VCOMH Deselect Level
-    sendCmd(0x40); //   ~0.77 × Vcc (recommended)
-
-    sendCmd(0xA4); // Entire Display ON (resume RAM content)
-
-    sendCmd(0xA6); // Set Normal Display (not inverted)
-
-    // Clear display RAM
-    std::uint8_t zeros[SSD1306_WIDTH];
-    std::memset(zeros, 0x00, sizeof(zeros));
-
-    for (int page = 0; page < SSD1306_PAGES; ++page)
+    struct CommandStep
     {
-        setPageColumn(page, 0);         // Set page + column to start of line
-        sendData(zeros, SSD1306_WIDTH); // Clear one full row
+        C cmd;
+        uint8_t param;
+        bool has_param;
+    };
+
+    static constexpr std::array<CommandStep, 15> init_steps = {{
+        {C::DisplayOff, 0x00, false},
+
+        {C::SetClockDiv, 0x80, true},  // suggested default
+        {C::SetMultiplex, 0x3F, true}, // 63 -> 64 rows
+
+        {C::SetDisplayOffset, 0x00, true}, // no offset
+        {C::SetStartLine, 0x00, false},    // 0x40 | 0 already encoded in cmd
+
+        {C::ChargePump, 0x14, true}, // enable charge pump
+
+        {C::MemoryMode, 0x00, true}, // horizontal addressing
+
+        {C::SegmentRemap, 0x00, false}, // A1
+        {C::ComScanDec, 0x00, false},   // C8
+
+        {C::SetComPins, 0x12, true},  // alt COM config
+        {C::SetContrast, 0x7F, true}, // medium contrast
+
+        {C::SetPrecharge, 0xF1, true},  // phase 1=15, phase 2=1
+        {C::SetVcomDetect, 0x40, true}, // ~0.77 * Vcc
+
+        {C::ResumeRAM, 0x00, false},     // A4
+        {C::NormalDisplay, 0x00, false}, // A6
+    }};
+
+    // Send initialization sequence
+    for (const auto& step : init_steps)
+    {
+        (void)sendCmd(step.cmd);
+
+        if (step.has_param)
+        {
+            std::array<std::uint8_t, 2> buf = {0x00, step.param};
+            (void)m_dev.write(std::span<const uint8_t>(buf.data(), buf.size()));
+        }
     }
 
-    sendCmd(0xAF); // Display ON
+    // Clear display RAM
+    std::array<std::uint8_t, SSD1306_WIDTH> zeros = {};
+    for (int page = 0; page < SSD1306_PAGES; ++page)
+    {
+        setPageColumn(page, 0);
+        (void)sendData(zeros);
+    }
+
+    (void)sendCmd(C::DisplayOn);
 }
 
 } // namespace ssd1306
