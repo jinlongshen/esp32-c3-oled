@@ -1,0 +1,28 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "ESP32-C3 Direct GDB",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/esp32c3_demo.elf",
+      "cwd": "${workspaceFolder}",
+      "MIMode": "gdb",
+      "miDebuggerPath": "/usr/local/bin/riscv32-esp-elf-gdb",
+      "miDebuggerServerAddress": "",
+      "preLaunchTask": "Start OpenOCD",
+      "postDebugTask": "Stop OpenOCD",
+      "stopAtEntry": true,
+      "setupCommands": [
+        { "text": "set remotetimeout 20" },
+        { "text": "set arch riscv:rv32" },
+        { "text": "target extended-remote 127.0.0.1:3333" },
+        { "text": "monitor reset halt" },
+        { "text": "maintenance flush register-cache" },
+        { "text": "thb app_main" }
+      ],
+      "externalConsole": false,
+      "logging": { "engineLogging": false }
+    }
+  ]
+}

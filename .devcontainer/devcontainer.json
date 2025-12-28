@@ -1,0 +1,9 @@
+{
+    "name": "ESP-IDF Local",
+    "image": "ghcr.io/jinlongshen/esp-idf-c3-freetype:latest",
+    "remoteUser": "root",
+    "mounts": [
+        "source=/dev/bus/usb,target=/dev/bus/usb,type=bind"
+    ],
+    "runArgs": ["--privileged"]
+}

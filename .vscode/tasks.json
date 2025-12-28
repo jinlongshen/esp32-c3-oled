@@ -1,0 +1,38 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Build Project",
+      "type": "shell",
+      "command": "idf.py build",
+      "group": "build"
+    },
+    {
+      "label": "Start OpenOCD",
+      "type": "shell",
+      "command": "pkill -9 openocd || true; openocd -c 'set ESP_RTOS FreeRTOS' -f board/esp32c3-builtin.cfg",
+      "isBackground": true,
+      "dependsOn": "Build Project",
+      "problemMatcher": {
+        "owner": "cpp",
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "Open On-Chip Debugger",
+          "endsPattern": "Listening on port 3333"
+        },
+        "pattern": {
+          "regexp": "^(Not a real pattern)$"
+        }
+      }
+    },
+    {
+      "label": "Stop OpenOCD",
+      "type": "shell",
+      "command": "pkill -9 openocd || true",
+      "presentation": {
+        "reveal": "silent",
+        "close": true
+      }
+    }
+  ]
+}

@@ -1,12 +1,12 @@
 #ifndef MUC_OLED_SSD1306_H
 #define MUC_OLED_SSD1306_H
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <span>
 
 #include "esp_err.h"
-
 #include "II2CDevice.h"
 #include "ssd1306_commands.h"
 
@@ -18,9 +18,18 @@ namespace ssd1306
 // -----------------------------------------------------------------------------
 // SSD1306 chip geometry (universal, not board-specific)
 // -----------------------------------------------------------------------------
-inline constexpr std::size_t SSD1306_WIDTH = 128;
-inline constexpr std::size_t SSD1306_HEIGHT = 64;
-inline constexpr std::size_t SSD1306_PAGES = SSD1306_HEIGHT / 8;
+constexpr std::size_t SSD1306_WIDTH = 128;
+constexpr std::size_t SSD1306_HEIGHT = 64;
+constexpr std::size_t SSD1306_PAGES = SSD1306_HEIGHT / 8;
+
+// -----------------------------------------------------------------------------
+// Visible area on this board (73x64 at offset 27,24)
+//  NOTE: must be defined BEFORE using in std::array
+// -----------------------------------------------------------------------------
+constexpr std::size_t OLED_WIDTH = 73;
+constexpr std::size_t OLED_HEIGHT = 64;
+constexpr std::size_t OLED_X_OFFSET = 27;
+constexpr std::size_t OLED_Y_OFFSET = 24;
 
 // -----------------------------------------------------------------------------
 // OLED driver class
@@ -30,6 +39,10 @@ class Oled
   public:
     explicit Oled(II2CDevice& dev) noexcept;
     ~Oled() noexcept = default;
+
+    void drawPixel(int x, int y, bool on) noexcept;
+    void clear() noexcept;
+    void update() noexcept;
 
     void drawVisibleBar() noexcept;
     void drawCharA(int x, int y) noexcept;
@@ -43,12 +56,8 @@ class Oled
 
     II2CDevice& m_dev;
 
-  public:
-    // Visible area on this board (73x64 at offset 27,24)
-    static constexpr std::size_t OLED_WIDTH = 73;
-    static constexpr std::size_t OLED_HEIGHT = 64;
-    static constexpr std::size_t OLED_X_OFFSET = 27;
-    static constexpr std::size_t OLED_Y_OFFSET = 24;
+    // Framebuffer for the visible OLED region
+    std::array<std::uint8_t, OLED_WIDTH * OLED_HEIGHT / 8> m_screen{};
 };
 
 } // namespace ssd1306
