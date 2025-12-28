@@ -17,83 +17,15 @@ namespace muc
 namespace ssd1306
 {
 
+// =============================================================================
+// Lifecycle (Constructor & Initialization)
+// =============================================================================
+
 Oled::Oled(II2CDevice& dev) noexcept
 : m_dev(dev)
+, m_screen{}
 {
     initialize();
-}
-
-esp_err_t Oled::sendCmd(Command c) noexcept
-{
-    std::uint8_t buf[2] = {
-        0x00, static_cast<std::uint8_t>(c)}; // control byte + command
-    return m_dev.write(std::span<const std::uint8_t>(buf, 2));
-}
-
-esp_err_t Oled::sendData(std::span<const std::uint8_t> data) noexcept
-{
-    if (data.size() > SSD1306_WIDTH)
-    {
-        data = data.first(SSD1306_WIDTH);
-    }
-
-    std::array<std::uint8_t, 1 + SSD1306_WIDTH> buf{};
-    buf[0] = 0x40; // control byte for data
-    std::copy(data.begin(), data.end(), buf.begin() + 1);
-
-    auto err =
-        m_dev.write(std::span<const std::uint8_t>(buf.data(), 1 + data.size()));
-    if (err != ESP_OK)
-    {
-        ESP_LOGE(TAG,
-                 "sendData(len=%u) failed: %s",
-                 static_cast<unsigned>(data.size()),
-                 esp_err_to_name(err));
-    }
-    return err;
-}
-
-void Oled::setPageColumn(std::uint8_t page, std::uint8_t column) noexcept
-{
-    page &= 0x07;
-    column &= 0x7F;
-
-    sendCmd(static_cast<Command>(0xB0 | page));                   // set page
-    sendCmd(static_cast<Command>(0x00 | (column & 0x0F)));        // low col
-    sendCmd(static_cast<Command>(0x10 | ((column >> 4) & 0x0F))); // high col
-}
-
-void Oled::drawVisibleBar() noexcept
-{
-    std::uint8_t page = (OLED_Y_OFFSET / 8);
-    std::array<std::uint8_t, 32> bar;
-    bar.fill(0xFF);
-
-    setPageColumn(page, OLED_X_OFFSET);
-    sendData(bar);
-
-    ESP_LOGI(TAG,
-             "Drew white bar at x=%d..%d, page=%d (y≈%d..%d)",
-             static_cast<int>(OLED_X_OFFSET),
-             static_cast<int>(OLED_X_OFFSET + bar.size() - 1),
-             static_cast<int>(page),
-             static_cast<int>(page * 8),
-             static_cast<int>(page * 8 + 7));
-}
-
-void Oled::drawCharA(int x, int y) noexcept
-{
-    // Simple 5x8 'A' bitmap, column-major, LSB at top
-    constexpr std::array<std::uint8_t, 5> A_5x8 = {
-        0x7C, 0x12, 0x11, 0x12, 0x7C};
-
-    const int page = (OLED_Y_OFFSET + y) / 8;
-    const int column = OLED_X_OFFSET + x;
-
-    setPageColumn(static_cast<std::uint8_t>(page),
-                  static_cast<std::uint8_t>(column));
-
-    sendData(A_5x8);
 }
 
 void Oled::initialize() noexcept
@@ -109,30 +41,22 @@ void Oled::initialize() noexcept
 
     static constexpr std::array<CommandStep, 15> init_steps = {{
         {C::DisplayOff, 0x00, false},
-
-        {C::SetClockDiv, 0x80, true},  // suggested default
-        {C::SetMultiplex, 0x3F, true}, // 63 -> 64 rows
-
-        {C::SetDisplayOffset, 0x00, true}, // no offset
-        {C::SetStartLine, 0x00, false},    // already encoded in cmd
-
-        {C::ChargePump, 0x14, true}, // enable charge pump
-        {C::MemoryMode, 0x00, true}, // horizontal addressing
-
-        {C::SegmentRemap, 0x00, false}, // A1
-        {C::ComScanDec, 0x00, false},   // C8
-
-        {C::SetComPins, 0x12, true},  // alt COM config
-        {C::SetContrast, 0x7F, true}, // medium contrast
-
-        {C::SetPrecharge, 0xF1, true},  // phase 1=15, phase 2=1
-        {C::SetVcomDetect, 0x40, true}, // ~0.77 * Vcc
-
-        {C::ResumeRAM, 0x00, false},     // A4
-        {C::NormalDisplay, 0x00, false}, // A6
+        {C::SetClockDiv, 0x80, true},
+        {C::SetMultiplex, 0x3F, true},
+        {C::SetDisplayOffset, 0x00, true},
+        {C::SetStartLine, 0x00, false},
+        {C::ChargePump, 0x14, true},
+        {C::MemoryMode, 0x00, true},
+        {C::SegmentRemap, 0x00, false},
+        {C::ComScanDec, 0x00, false},
+        {C::SetComPins, 0x12, true},
+        {C::SetContrast, 0x7F, true},
+        {C::SetPrecharge, 0xF1, true},
+        {C::SetVcomDetect, 0x40, true},
+        {C::ResumeRAM, 0x00, false},
+        {C::NormalDisplay, 0x00, false},
     }};
 
-    // Send initialization sequence
     for (const auto& step : init_steps)
     {
         (void)sendCmd(step.cmd);
@@ -156,6 +80,10 @@ void Oled::initialize() noexcept
     (void)sendCmd(C::DisplayOn);
 }
 
+// =============================================================================
+// High-Level Drawing (Uses m_screen buffer)
+// =============================================================================
+
 void Oled::drawPixel(int x, int y, bool on) noexcept
 {
     // Map logical (x, y) to framebuffer-local coordinates
@@ -175,6 +103,46 @@ void Oled::drawPixel(int x, int y, bool on) noexcept
         m_screen[index] &= ~mask;
 }
 
+// =============================================================================
+// Direct Hardware Drawing (Bypasses m_screen buffer)
+// =============================================================================
+
+void Oled::drawVisibleBar() noexcept
+{
+    std::uint8_t page = (OLED_Y_OFFSET / 8);
+    std::array<std::uint8_t, 32> bar;
+    bar.fill(0xFF);
+
+    setPageColumn(page, OLED_X_OFFSET);
+    sendData(bar);
+
+    ESP_LOGI(TAG,
+             "Drew white bar at x=%d..%d, page=%d (y≈%d..%d)",
+             static_cast<int>(OLED_X_OFFSET),
+             static_cast<int>(OLED_X_OFFSET + bar.size() - 1),
+             static_cast<int>(page),
+             static_cast<int>(page * 8),
+             static_cast<int>(page * 8 + 7));
+}
+
+void Oled::drawCharA(int x, int y) noexcept
+{
+    constexpr std::array<std::uint8_t, 5> A_5x8 = {
+        0x7C, 0x12, 0x11, 0x12, 0x7C};
+
+    const int page = (OLED_Y_OFFSET + y) / 8;
+    const int column = OLED_X_OFFSET + x;
+
+    setPageColumn(static_cast<std::uint8_t>(page),
+                  static_cast<std::uint8_t>(column));
+
+    sendData(A_5x8);
+}
+
+// =============================================================================
+// Buffer Management
+// =============================================================================
+
 void Oled::clear() noexcept
 {
     m_screen.fill(0);
@@ -183,7 +151,6 @@ void Oled::clear() noexcept
 
 void Oled::update() noexcept
 {
-    // Push only the visible 73x64 window starting at OLED_X_OFFSET
     for (int page = 0; page < static_cast<int>(OLED_HEIGHT / 8); ++page)
     {
         setPageColumn(static_cast<std::uint8_t>(page),
@@ -194,6 +161,46 @@ void Oled::update() noexcept
 
         sendData(data);
     }
+}
+
+// =============================================================================
+// Low-Level Hardware I/O
+// =============================================================================
+
+esp_err_t Oled::sendCmd(Command c) noexcept
+{
+    std::uint8_t buf[2] = {0x00, static_cast<std::uint8_t>(c)};
+    return m_dev.write(std::span<const std::uint8_t>(buf, 2));
+}
+
+esp_err_t Oled::sendData(std::span<const std::uint8_t> data) noexcept
+{
+    if (data.size() > SSD1306_WIDTH)
+    {
+        data = data.first(SSD1306_WIDTH);
+    }
+
+    std::array<std::uint8_t, 1 + SSD1306_WIDTH> buf{};
+    buf[0] = 0x40;
+    std::copy(data.begin(), data.end(), buf.begin() + 1);
+
+    auto err =
+        m_dev.write(std::span<const std::uint8_t>(buf.data(), 1 + data.size()));
+    if (err != ESP_OK)
+    {
+        ESP_LOGE(TAG, "sendData failed: %s", esp_err_to_name(err));
+    }
+    return err;
+}
+
+void Oled::setPageColumn(std::uint8_t page, std::uint8_t column) noexcept
+{
+    page &= 0x07;
+    column &= 0x7F;
+
+    sendCmd(static_cast<Command>(0xB0 | page));
+    sendCmd(static_cast<Command>(0x00 | (column & 0x0F)));
+    sendCmd(static_cast<Command>(0x10 | ((column >> 4) & 0x0F)));
 }
 
 } // namespace ssd1306
