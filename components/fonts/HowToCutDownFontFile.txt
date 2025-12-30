@@ -1,0 +1,1 @@
+# pyftsubset NotoSansSC-Regular.ttf --text="Grüße你好" --output-file=oled_subset_combined.ttf

@@ -1,32 +1,41 @@
 BasedOnStyle: LLVM
 
+# --- Basic Layout ---
 IndentWidth: 4
 TabWidth: 4
 UseTab: Never
+ColumnLimit: 100
 
+# --- Braces & Blocks ---
+# This forces the Allman style (braces on new lines)
 BreakBeforeBraces: Allman
+
+# This forces braces to be added to 'if', 'else', 'for', 'while' 
+# even if they are single-line (Requires clang-format 15+)
+InsertBraces: true
+
+# Disallow single-line shorthand
 AllowShortFunctionsOnASingleLine: None
 AllowShortIfStatementsOnASingleLine: false
 AllowShortLoopsOnASingleLine: false
+AllowShortBlocksOnASingleLine: false
 
+# --- Indentation ---
 NamespaceIndentation: None
 IndentExternBlock: NoIndent
 
+# --- Whitespace & Lines ---
 MaxEmptyLinesToKeep: 1
-
 AlignTrailingComments: true
 SpacesBeforeTrailingComments: 1
 ReflowComments: false
 
+# --- Constructors ---
 BreakConstructorInitializers: BeforeComma
 ConstructorInitializerIndentWidth: 0
 
-AlwaysBreakTemplateDeclarations: No
-
-# ---------------------------------------------------------------------------
-# Function signature formatting
-# ---------------------------------------------------------------------------
-
+# --- Function Signatures ---
+AlwaysBreakTemplateDeclarations: Yes
 AlwaysBreakAfterReturnType: None
 AlwaysBreakAfterDefinitionReturnType: None
 PenaltyReturnTypeOnItsOwnLine: 1000
@@ -34,9 +43,10 @@ PenaltyReturnTypeOnItsOwnLine: 1000
 BinPackParameters: false
 BinPackArguments: false
 AllowAllParametersOfDeclarationOnNextLine: false
-
 IndentWrappedFunctionNames: false
 
+# --- Alignment ---
+# PointerAlignment: Left means 'char* p'
 PointerAlignment: Left
 ReferenceAlignment: Left
 
@@ -44,40 +54,21 @@ SpaceBeforeParens: ControlStatements
 SpacesInParentheses: false
 SpacesInSquareBrackets: false
 
-# ---------------------------------------------------------------------------
-# Include handling
-# ---------------------------------------------------------------------------
-
-# IMPORTANT:
-# - SortIncludes=false ensures clang-format NEVER reorders inside a block.
-# - IncludeBlocks=Preserve ensures clang-format NEVER moves headers across blank lines.
-# This gives you full manual control over your 4 include groups.
-
+# --- Include Handling ---
+# Your manual control settings
 SortIncludes: false
 IncludeBlocks: Preserve
-
-# ---------------------------------------------------------------------------
-# Include ordering rules (kept for reference only; inactive because SortIncludes=false)
-#
-# 1. Module header: "foo.h" when editing foo.c or foo.cpp
-# 2. Standard C headers: <xxx.h>
-# 3. Standard C++ headers: <vector>, <array>, <span>, ...
-# 4. Everything else (ESP-IDF, FreeRTOS, project headers)
-# ---------------------------------------------------------------------------
 
 IncludeCategories:
   - Regex: '^"{file_base}\\.h"$'
     Priority: 1
     SortPriority: 0
-
   - Regex: '^<[a-z0-9_]+\\.h>$'
     Priority: 2
     SortPriority: 1
-
   - Regex: '^<[a-zA-Z][a-zA-Z0-9_]*>$'
     Priority: 3
     SortPriority: 2
-
   - Regex: '.*'
     Priority: 4
     SortPriority: 3
