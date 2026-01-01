@@ -23,54 +23,42 @@ void max30102_task(void* pvParameters)
 {
     auto* sensor = static_cast<muc::max30102::MAX30102*>(pvParameters);
 
+    // Initialize sensor (you already implemented this)
+    if (sensor->initialize() != ESP_OK)
+    {
+        ESP_LOGE(TAG, "MAX30102 init failed");
+        vTaskDelete(nullptr);
+    }
+
+    ESP_LOGI(TAG, "MAX30102 initialized, starting sampling...");
+
     while (true)
     {
-        // ---------------------------------------------------------------------
-        // 1. Dummy write to a writable register (FIFO write pointer)
-        // ---------------------------------------------------------------------
-        constexpr std::uint8_t test_value = 0x12;
+        std::uint32_t red = 0;
+        std::uint32_t ir = 0;
 
-        esp_err_t err = sensor->writeReg(muc::max30102::Register::FifoWritePtr, test_value);
-
+        esp_err_t err = sensor->readFifoSample(red, ir);
         if (err != ESP_OK)
         {
-            ESP_LOGE(TAG, "I2C write failed: %s", esp_err_to_name(err));
-            vTaskDelay(pdMS_TO_TICKS(1000));
+            ESP_LOGE(TAG, "FIFO read failed: %s", esp_err_to_name(err));
+            vTaskDelay(pdMS_TO_TICKS(10));
             continue;
         }
 
-        // ---------------------------------------------------------------------
-        // 2. Read back the same register
-        // ---------------------------------------------------------------------
-        std::uint8_t read_back = 0;
-        err = sensor->readReg(muc::max30102::Register::FifoWritePtr, read_back);
+        ESP_LOGI(TAG, "RED=%u  IR=%u", red, ir);
 
-        if (err == ESP_OK)
-        {
-            ESP_LOGI(TAG, "FIFO_WRITE_PTR wrote 0x%02X, read back 0x%02X", test_value, read_back);
-        }
-        else
-        {
-            ESP_LOGE(TAG, "I2C read failed: %s", esp_err_to_name(err));
-        }
+        // ---------------------------------------------------------
+        // Add FIFO pointer debug *right here*
+        // ---------------------------------------------------------
+        uint8_t wptr = 0, rptr = 0;
+        sensor->readReg(muc::max30102::Register::FifoWritePtr, wptr);
+        sensor->readReg(muc::max30102::Register::FifoReadPtr, rptr);
+        ESP_LOGI(TAG, "W=%u  R=%u", wptr, rptr);
+        // ---------------------------------------------------------
 
-        // ---------------------------------------------------------------------
-        // 3. Read PART ID (should be 0x15)
-        // ---------------------------------------------------------------------
-        std::uint8_t part_id = 0;
-        err = sensor->readReg(muc::max30102::Register::PartId, part_id);
-
-        if (err == ESP_OK)
-        {
-            ESP_LOGI(TAG, "MAX30102 PART ID = 0x%02X", part_id);
-        }
-        else
-        {
-            ESP_LOGE(TAG, "Failed to read PART ID: %s", esp_err_to_name(err));
-        }
-
-        vTaskDelay(pdMS_TO_TICKS(1000));
+        vTaskDelay(pdMS_TO_TICKS(10)); // 100 Hz
     }
 }
+
 } // namespace max30102
 } // namespace muc

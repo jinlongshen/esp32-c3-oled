@@ -53,13 +53,13 @@ esp_err_t MAX30102::initialize() noexcept
 
     // --- LED pulse amplitudes ---
     // 0x24 = moderate LED current
-    err = writeReg(Register::Led1PulseAmp, 0x24); // IR LED
+    err = writeReg(Register::Led1PulseAmp, 0x40); // IR LED
     if (err != ESP_OK)
     {
         return err;
     }
 
-    err = writeReg(Register::Led2PulseAmp, 0x24); // RED LED
+    err = writeReg(Register::Led2PulseAmp, 0x40); // RED LED
     if (err != ESP_OK)
     {
         return err;
