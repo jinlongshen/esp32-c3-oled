@@ -10,5 +10,4 @@ idf_component_register(
 )
 
 target_link_libraries(${COMPONENT_LIB} PUBLIC "${FREETYPE_LIB}")
-target_link_libraries(${COMPONENT_LIB} PUBLIC "m")
 target_include_directories(${COMPONENT_LIB} PUBLIC "${FREETYPE_INCLUDE}")

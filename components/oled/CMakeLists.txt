@@ -2,7 +2,7 @@
 idf_component_register(
     SRCS "src/ssd1306.cpp"
     INCLUDE_DIRS "inc"
-    REQUIRES I2CDevice driver esp_driver_gpio esp_driver_i2c
+    REQUIRES I2CDevice
 )
 
 idf_component_get_property(oled_lib oled COMPONENT_LIB)
