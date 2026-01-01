@@ -26,5 +26,10 @@ extern "C" void app_main(void)
     // Start the font animation task with enough stack
     xTaskCreate(muc::fonts::font_task, "font_task", 20480, &oled, 5, nullptr);
 
-    xTaskCreate(muc::max30102::max30102_task, "max30102_task", 2047, &max30102, 5, nullptr);
+    xTaskCreate(muc::max30102::max30102_task,
+                "max30102_task",
+                8192, // bytes on ESP32-C3
+                &max30102,
+                3,
+                nullptr);
 }

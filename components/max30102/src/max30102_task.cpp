@@ -1,29 +1,29 @@
-#include <cstdint>
-#include <cstdio>
+#include "max30102_task.h"
+#include "max30102.h"
+#include "max30102_regs.h"
+#include "spo2_hr.h"
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_log.h"
-
-#include "I2CBus.h"
-#include "I2CDevice.h"
-#include "max30102.h"
-#include "max30102_regs.h"
 
 namespace
 {
 const char* TAG = "MAX30102Task";
 }
 
+// Processor must NOT be on task stack
+static muc::max30102::SpO2HrProcessor s_spo2HrProcessor;
+
 namespace muc
 {
 namespace max30102
 {
+
 void max30102_task(void* pvParameters)
 {
-    auto* sensor = static_cast<muc::max30102::MAX30102*>(pvParameters);
+    auto* sensor = static_cast<MAX30102*>(pvParameters);
 
-    // Initialize sensor (you already implemented this)
     if (sensor->initialize() != ESP_OK)
     {
         ESP_LOGE(TAG, "MAX30102 init failed");
@@ -45,18 +45,23 @@ void max30102_task(void* pvParameters)
             continue;
         }
 
-        ESP_LOGI(TAG, "RED=%u  IR=%u", red, ir);
+        ESP_LOGI(TAG, "RED=%u IR=%u", red, ir);
 
-        // ---------------------------------------------------------
-        // Add FIFO pointer debug *right here*
-        // ---------------------------------------------------------
-        uint8_t wptr = 0, rptr = 0;
-        sensor->readReg(muc::max30102::Register::FifoWritePtr, wptr);
-        sensor->readReg(muc::max30102::Register::FifoReadPtr, rptr);
-        ESP_LOGI(TAG, "W=%u  R=%u", wptr, rptr);
-        // ---------------------------------------------------------
+        s_spo2HrProcessor.addSample(red, ir);
 
-        vTaskDelay(pdMS_TO_TICKS(10)); // 100 Hz
+        // float spo2 = 0.0f;
+        // if (s_spo2HrProcessor.computeSpO2(spo2))
+        // {
+        //     ESP_LOGI(TAG, "SpO2 = %.2f %%", spo2);
+        // }
+
+        float bpm = 0.0f;
+        if (s_spo2HrProcessor.computeHeartRate(bpm))
+        {
+            ESP_LOGI(TAG, "Heart Rate = %.1f BPM", bpm);
+        }
+
+        vTaskDelay(pdMS_TO_TICKS(20)); // 50 Hz sampling
     }
 }
 
