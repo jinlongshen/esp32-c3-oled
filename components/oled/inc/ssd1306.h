@@ -29,6 +29,8 @@ constexpr std::size_t OLED_X_OFFSET = 27;
 constexpr std::size_t OLED_Y_OFFSET = 24;
 constexpr std::size_t OLED_PAGES = OLED_HEIGHT / 8;
 
+constexpr std::uint8_t OLED_ADDR = 0x3C;
+
 // -----------------------------------------------------------------------------
 // OLED driver class
 // -----------------------------------------------------------------------------

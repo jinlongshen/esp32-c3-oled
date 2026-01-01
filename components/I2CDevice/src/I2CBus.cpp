@@ -5,6 +5,7 @@ namespace muc
 
 I2CBus::I2CBus(i2c_port_t port, gpio_num_t sda, gpio_num_t scl) noexcept
 : m_handle(nullptr)
+, m_mutex()
 {
     i2c_master_bus_config_t cfg = {};
     cfg.i2c_port = port;
@@ -30,6 +31,11 @@ I2CBus::~I2CBus() noexcept
 i2c_master_bus_handle_t I2CBus::handle() const noexcept
 {
     return m_handle;
+}
+
+std::mutex& I2CBus::mutex() noexcept
+{
+    return m_mutex;
 }
 
 } // namespace muc

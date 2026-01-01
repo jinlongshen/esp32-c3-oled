@@ -1,5 +1,5 @@
 idf_component_register(
     SRCS "main.cpp"
     INCLUDE_DIRS "."
-    PRIV_REQUIRES fonts oled
+    PRIV_REQUIRES fonts oled max30102
 )

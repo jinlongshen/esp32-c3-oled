@@ -2,6 +2,7 @@
 #define COMPONENTS_I2CDEVICE_I2CBUS_H
 
 #include <cstdint>
+#include <mutex>
 
 #include "II2CBus.h"
 #include "driver/i2c_master.h"
@@ -19,11 +20,13 @@ class I2CBus : public II2CBus
     I2CBus(i2c_port_t port, gpio_num_t sda, gpio_num_t scl) noexcept;
     virtual ~I2CBus() noexcept override final;
 
-    [[nodiscard]] virtual i2c_master_bus_handle_t handle()
-        const noexcept override;
+    virtual i2c_master_bus_handle_t handle() const noexcept override final;
+
+    std::mutex& mutex() noexcept override final;
 
   private:
     i2c_master_bus_handle_t m_handle;
+    std::mutex m_mutex;
 };
 
 } // namespace muc

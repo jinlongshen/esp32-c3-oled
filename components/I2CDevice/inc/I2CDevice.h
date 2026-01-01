@@ -8,8 +8,7 @@
 namespace muc
 {
 
-static constexpr uint32_t I2C1_FREQ = 400000;
-static constexpr uint8_t OLED_ADDR = 0x3C;
+static constexpr std::uint32_t I2C1_FREQ = 400000;
 
 class I2CDevice : public II2CDevice
 {
@@ -21,6 +20,7 @@ class I2CDevice : public II2CDevice
 
     virtual esp_err_t write(
         std::span<const std::uint8_t> data) noexcept override final;
+    virtual esp_err_t read(std::span<std::uint8_t> data) noexcept override final;
 
   private:
     II2CBus& m_bus;

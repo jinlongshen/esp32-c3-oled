@@ -125,50 +125,6 @@ void Oled::drawVisibleBar() noexcept
              static_cast<int>(page * 8 + 7));
 }
 
-// void Oled::drawCharA(int x, int y) noexcept
-// {
-//     constexpr std::array<std::uint8_t, 5> A_5x8 = {
-//         0x7C, 0x12, 0x11, 0x12, 0x7C};
-
-//     const int page = (OLED_Y_OFFSET + y) / 8;
-//     const int column = OLED_X_OFFSET + x;
-
-//     setPageColumn(static_cast<std::uint8_t>(page),
-//                   static_cast<std::uint8_t>(column));
-
-//     sendData(A_5x8);
-// }
-
-// void Oled::drawCharA(int x, int y) noexcept
-// {
-//     static constexpr std::array<std::uint8_t, 5> A_5x8 = {
-//         0x7C, 0x12, 0x11, 0x12, 0x7C
-//     };
-
-//     // Calculate which logical page (0-7) the 'y' coordinate falls into
-//     int logical_page = y / 8;
-
-//     // Ensure we are within vertical bounds of the buffer
-//     if (logical_page < 0 || logical_page >= static_cast<int>(OLED_PAGES)) {
-//         return;
-//     }
-
-//     // Find the starting position in m_screen for this specific page and x-offset
-//     // m_screen is a flat array: [Page0: 0..72][Page1: 73..145]...
-//     std::size_t buffer_offset = (logical_page * OLED_WIDTH) + x;
-
-//     for (std::size_t i = 0; i < A_5x8.size(); ++i)
-//     {
-//         // Check horizontal bounds for each column of the character
-//         if ((x + i) < OLED_WIDTH)
-//         {
-//             // Direct byte assignment: each byte in A_5x8 replaces
-//             // the 8 vertical pixels at m_screen[index]
-//             m_screen[buffer_offset + i] = A_5x8[i];
-//         }
-//     }
-// }
-
 void Oled::drawCharA(int x, int y) noexcept
 {
     static constexpr std::array<std::uint8_t, 5> A_5x8 = {

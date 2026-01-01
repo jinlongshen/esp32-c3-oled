@@ -5,9 +5,7 @@
 namespace muc
 {
 
-I2CDevice::I2CDevice(II2CBus& bus,
-                     std::uint8_t address,
-                     std::uint32_t freq_hz) noexcept
+I2CDevice::I2CDevice(II2CBus& bus, std::uint8_t address, std::uint32_t freq_hz) noexcept
 : m_bus(bus)
 , m_dev(nullptr)
 {
@@ -30,7 +28,14 @@ I2CDevice::~I2CDevice() noexcept
 
 esp_err_t I2CDevice::write(std::span<const std::uint8_t> data) noexcept
 {
+    std::lock_guard<std::mutex> guard(m_bus.mutex());
     return i2c_master_transmit(m_dev, data.data(), data.size(), -1);
+}
+
+esp_err_t I2CDevice::read(std::span<std::uint8_t> data) noexcept
+{
+    std::lock_guard<std::mutex> guard(m_bus.mutex());
+    return i2c_master_receive(m_dev, data.data(), data.size(), -1);
 }
 
 } // namespace muc

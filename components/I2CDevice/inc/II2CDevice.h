@@ -16,8 +16,8 @@ class II2CDevice
     II2CDevice& operator=(const II2CDevice&) = delete;
     virtual ~II2CDevice() noexcept = default;
 
-    [[nodiscard]] virtual esp_err_t write(
-        std::span<const std::uint8_t> data) noexcept = 0;
+    virtual esp_err_t write(std::span<const std::uint8_t> data) noexcept = 0;
+    virtual esp_err_t read(std::span<std::uint8_t> data) noexcept = 0;
 
   protected:
     II2CDevice() = default;
