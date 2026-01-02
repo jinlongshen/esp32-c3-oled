@@ -3,7 +3,8 @@ set(FREETYPE_INCLUDE "/opt/freetype/include/freetype2")
 
 idf_component_register(
     SRCS "src/FontRenderer.cpp"
-         "src/example.cpp"
+         "src/font_rotate_task.cpp"
+         "src/font_test_task.cpp"
     INCLUDE_DIRS "inc"
     EMBED_FILES "oled_subset_ascii_umlaut.ttf"
     PRIV_REQUIRES oled

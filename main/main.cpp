@@ -7,6 +7,7 @@
 namespace muc::fonts
 {
 void font_task(void* pvParameters);
+void font_test_task(void* pvParameters);
 }
 
 extern "C" void app_main(void)
@@ -16,5 +17,5 @@ extern "C" void app_main(void)
     static muc::I2CDevice oled_slave(bus, muc::ssd1306::OLED_ADDR, muc::I2C1_FREQ);
     static muc::ssd1306::Oled oled(oled_slave);
 
-    xTaskCreate(muc::fonts::font_task, "font_task", 20480, &oled, 5, nullptr);
+    xTaskCreate(muc::fonts::font_test_task, "font_test_task", 20480, &oled, 5, nullptr);
 }

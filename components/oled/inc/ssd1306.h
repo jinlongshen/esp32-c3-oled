@@ -23,11 +23,11 @@ constexpr std::size_t SSD1306_HEIGHT = 64;
 constexpr std::size_t SSD1306_PAGES = SSD1306_HEIGHT / 8;
 
 // Actually available display
-constexpr std::size_t OLED_WIDTH = 73;
-constexpr std::size_t OLED_HEIGHT = 64;
+constexpr std::size_t OLED_WIDTH = 72;
+constexpr std::size_t OLED_HEIGHT = 40;
+constexpr std::size_t OLED_PAGES = OLED_HEIGHT / 8;
 constexpr std::size_t OLED_X_OFFSET = 27;
 constexpr std::size_t OLED_Y_OFFSET = 24;
-constexpr std::size_t OLED_PAGES = OLED_HEIGHT / 8;
 
 constexpr std::uint8_t OLED_ADDR = 0x3C;
 
