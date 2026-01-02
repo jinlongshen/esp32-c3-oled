@@ -219,12 +219,23 @@ esp_err_t Oled::sendData(std::span<const std::uint8_t> data) noexcept
 
 void Oled::setPageColumn(std::uint8_t page, std::uint8_t column) noexcept
 {
+    // SSD1306 has 8 pages (0–7)
     page &= 0x07;
+
+    // Visible columns are 0–127
     column &= 0x7F;
 
+    // Hardware column pointer is shifted by +1 on this module
+    std::uint8_t hw_column = static_cast<std::uint8_t>(column + 1);
+
+    // Set page
     sendCmd(static_cast<Command>(0xB0 | page));
-    sendCmd(static_cast<Command>(0x00 | (column & 0x0F)));
-    sendCmd(static_cast<Command>(0x10 | ((column >> 4) & 0x0F)));
+
+    // Set lower 4 bits of column
+    sendCmd(static_cast<Command>(0x00 | (hw_column & 0x0F)));
+
+    // Set upper 4 bits of column
+    sendCmd(static_cast<Command>(0x10 | ((hw_column >> 4) & 0x0F)));
 }
 
 } // namespace ssd1306
