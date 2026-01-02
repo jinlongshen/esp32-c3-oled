@@ -3,7 +3,7 @@
 # ------------------------------------------------------------
 # 1. Configuration
 # ------------------------------------------------------------
-IMAGE_NAME="ghcr.io/jinlongshen/esp-idf-c3-freetype"
+IMAGE_NAME="ghcr.io/jinlongshen/esp-idf-c3-dev"
 TAG="latest"
 
 echo "🔍 Checking for updates at $IMAGE_NAME:$TAG..."
