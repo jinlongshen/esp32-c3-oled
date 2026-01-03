@@ -103,60 +103,29 @@ void Oled::drawPixel(int x, int y, bool on) noexcept
         m_screen[index] &= ~mask;
 }
 
-// =============================================================================
-// Direct Hardware Drawing (Bypasses m_screen buffer)
-// =============================================================================
-
-void Oled::drawVisibleBar() noexcept
+void Oled::blitLVGLBuffer(std::span<const uint8_t> lvbuf) noexcept
 {
-    std::uint8_t page = (OLED_Y_OFFSET / 8);
-    std::array<std::uint8_t, 32> bar;
-    bar.fill(0xFF);
+    const std::size_t expected = (OLED_WIDTH * OLED_HEIGHT) / 8;
 
-    setPageColumn(page, OLED_X_OFFSET);
-    sendData(bar);
-
-    ESP_LOGI(TAG,
-             "Drew white bar at x=%d..%d, page=%d (y≈%d..%d)",
-             static_cast<int>(OLED_X_OFFSET),
-             static_cast<int>(OLED_X_OFFSET + bar.size() - 1),
-             static_cast<int>(page),
-             static_cast<int>(page * 8),
-             static_cast<int>(page * 8 + 7));
-}
-
-void Oled::drawCharA(int x, int y) noexcept
-{
-    static constexpr std::array<std::uint8_t, 5> A_5x8 = {
-        0x7C, 0x12, 0x11, 0x12, 0x7C};
-
-    // 1. Map global (x, y) to local framebuffer (fx, fy)
-    int fx = x - static_cast<int>(OLED_X_OFFSET);
-    int fy = y - static_cast<int>(OLED_Y_OFFSET);
-
-    // 2. Vertical Bounds Check
-    // A 5x8 font fits exactly in one page IF fy is a multiple of 8.
-    int logical_page = fy / 8;
-    if (logical_page < 0 || logical_page >= static_cast<int>(OLED_PAGES) ||
-        fy % 8 != 0)
+    if (lvbuf.size() < expected)
     {
-        // Note: This logic only works perfectly if y is aligned to a page (0, 8, 16...)
         return;
     }
 
-    // 3. Calculate Buffer Start
-    std::size_t buffer_offset = (logical_page * OLED_WIDTH) + fx;
-
-    for (std::size_t i = 0; i < A_5x8.size(); ++i)
+    for (int y = 0; y < OLED_HEIGHT; ++y)
     {
-        // 4. Horizontal Bounds Check (using local fx)
-        int current_fx = fx + static_cast<int>(i);
-        if (current_fx >= 0 && current_fx < static_cast<int>(OLED_WIDTH))
+        for (int x = 0; x < OLED_WIDTH; ++x)
         {
-            m_screen[buffer_offset + i] = A_5x8[i];
+            int bit_index = y * OLED_WIDTH + x;
+            int byte_index = bit_index >> 3;
+            int bit = bit_index & 7;
+
+            bool on = (lvbuf[byte_index] >> bit) & 1;
+            drawPixel(x, y, on);
         }
     }
 }
+
 // =============================================================================
 // Buffer Management
 // =============================================================================

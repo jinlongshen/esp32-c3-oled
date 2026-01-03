@@ -48,9 +48,7 @@ class Oled
     // High-Level Drawing (Uses m_screen buffer)
     void drawPixel(int x, int y, bool on) noexcept;
 
-    // Direct Hardware Drawing (Bypasses m_screen buffer)
-    void drawVisibleBar() noexcept;
-    void drawCharA(int x, int y) noexcept;
+    void blitLVGLBuffer(std::span<const uint8_t> lvbuf) noexcept;
 
   private:
     // Internal Hardware Control
