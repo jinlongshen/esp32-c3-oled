@@ -1,5 +1,17 @@
 idf_component_register(
     SRCS "main.cpp"
     INCLUDE_DIRS "."
-    PRIV_REQUIRES fonts oled
+    REQUIRES fonts oled lvgl_driver
+)
+
+# 1. Force the linker to 'expect' the FreeType symbol immediately
+# 2. Re-include the libraries at the end in a proper group
+target_link_options(${COMPONENT_LIB} PUBLIC 
+    "-Wl,-u,FT_Init_FreeType"
+    "-Wl,-u,FT_New_Face"
+    "-Wl,-u,FT_Done_Face"
+    "-Wl,--start-group"
+    "/opt/lvgl/lib/liblvgl.a"
+    "/opt/freetype/lib/libfreetype.a"
+    "-Wl,--end-group"
 )

@@ -1,29 +1,29 @@
-# Path to host‑built LVGL
-set(LVGL_INCLUDE "/opt/lvgl/include")
-set(LVGL_LIB_DIR "/opt/lvgl/lib")
-set(LVGL_CONF_PATH /opt/lvgl/include/lvgl/lv_conf.h)
+set(LVGL_ROOT "/opt/lvgl")
+set(FREETYPE_ROOT "/opt/freetype")
+
+set(LV_LIB "${LVGL_ROOT}/lib/liblvgl.a")
+set(FT_LIB "${FREETYPE_ROOT}/lib/libfreetype.a")
 
 idf_component_register(
-    SRCS
-        "src/lvgl_driver.cpp"
-    INCLUDE_DIRS
-        "inc"
-    REQUIRES
-        oled
+    SRCS "src/lvgl_driver.cpp"
+    INCLUDE_DIRS "inc"
+    REQUIRES oled
 )
 
-# Make LVGL use the correct lv_conf.h
-# IMPORTANT: no escaped quotes, no surrounding quotes
-target_compile_definitions(${COMPONENT_LIB} PUBLIC
-    LV_CONF_PATH=${LVGL_CONF_PATH}
+# This is the "Root Cause" fix for the FreeType error
+target_link_libraries(${COMPONENT_LIB} PUBLIC 
+    "-Wl,--start-group"
+    "${LV_LIB}"
+    "${FT_LIB}"
+    "-Wl,--end-group"
 )
 
-# Add LVGL include directory
-target_include_directories(${COMPONENT_LIB} PUBLIC
-    ${LVGL_INCLUDE}
+target_include_directories(${COMPONENT_LIB} PUBLIC 
+    "${LVGL_ROOT}/include"
+    "${FREETYPE_ROOT}/include/freetype2"
 )
 
-# Link LVGL static library
-target_link_libraries(${COMPONENT_LIB} PUBLIC
-    ${LVGL_LIB_DIR}/liblvgl.a
+target_compile_definitions(${COMPONENT_LIB} PUBLIC 
+    LV_CONF_PATH=/opt/lvgl/include/lvgl/lv_conf.h
+    LV_CONF_INCLUDE_SIMPLE
 )

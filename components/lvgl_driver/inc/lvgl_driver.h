@@ -2,10 +2,11 @@
 #define COMPONENTS_LVGL_DRIVER_H
 
 #include "lvgl/lvgl.h"
+#include "ssd1306.h"
 
 namespace muc::lvgl_driver
 {
-void init() noexcept;
+void init(muc::ssd1306::Oled& oled) noexcept;
 void lvgl_tick_task(void* pvArgument) noexcept;
 } // namespace muc::lvgl_driver
 
