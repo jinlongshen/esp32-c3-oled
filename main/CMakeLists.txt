@@ -11,7 +11,7 @@ target_link_options(${COMPONENT_LIB} PUBLIC
     "-Wl,-u,FT_New_Face"
     "-Wl,-u,FT_Done_Face"
     "-Wl,--start-group"
-    "/opt/lvgl/lib/liblvgl.a"
+    # "/opt/lvgl/lib/liblvgl.a"
     "/opt/freetype/lib/libfreetype.a"
     "-Wl,--end-group"
 )

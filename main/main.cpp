@@ -16,11 +16,21 @@ extern "C" void app_main(void)
 {
     // Initialize Hardware
     static muc::I2CBus bus(muc::I2C1_PORT, muc::I2C1_SDA_PIN, muc::I2C1_SCL_PIN);
-    static muc::I2CDevice oled_slave(bus, muc::ssd1306::OLED_ADDR, muc::I2C1_FREQ);
-    static muc::ssd1306::Oled oled(oled_slave);
-    oled.clear();
-    oled.update();
 
+    static muc::I2CDevice oled_slave(bus, muc::ssd1306::OLED_ADDR, muc::I2C1_FREQ);
+
+    static muc::ssd1306::Oled oled(oled_slave);
+
+    // Initialize LVGL and register display driver
     muc::lvgl_driver::init(oled);
-    xTaskCreate(muc::lvgl_driver::lvgl_tick_task, "lvgl_tick_task", 20480, &oled, 5, nullptr);
+    xTaskCreate(muc::lvgl_driver::lvgl_handler_task, "lvgl_handler_task", 20480, &oled, 5, nullptr);
+    xTaskCreate(muc::lvgl_driver::lvgl_tick_task, "lvgl_tick_task", 2048, nullptr, 3, nullptr);
+
+    // -------------------------------------------------------------------------
+    // Idle loop
+    // -------------------------------------------------------------------------
+    while (true)
+    {
+        vTaskDelay(pdMS_TO_TICKS(1000));
+    }
 }
