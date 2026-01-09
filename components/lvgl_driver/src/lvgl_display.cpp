@@ -1,10 +1,12 @@
 #include "lvgl_display.h"
-#include "ssd1306.h"
-#include "lvgl.h"
+
 #include <array>
 #include <cstdint>
 #include <cstdio>
 #include <span>
+
+#include "ssd1306.h"
+#include "lvgl.h"
 
 namespace muc::lvgl_driver
 {
@@ -25,8 +27,38 @@ static void lvgl_flush_cb(lv_display_t* disp, const lv_area_t* area, std::uint8_
         return;
     }
 
-    // LVGL gives us LVGL_W × LVGL_H I1 buffer + palette.
-    oled->blitLVGLBuffer(std::span<const std::uint8_t>(color_p, LV_BUF_PIXELS));
+    // LVGL I1 format: first 8 bytes = palette
+    const uint8_t* src = color_p + 8;
+
+    // Horizontal offset (LVGL may flush starting at x1 > 0)
+    const int x_off = area->x1;
+
+    // If no shift needed, pass directly
+    if (x_off == 0)
+    {
+        oled->blitLVGLBuffer(std::span<const uint8_t>(src, LV_BUF_PIXELS));
+        oled->update();
+        lv_display_flush_ready(disp);
+        return;
+    }
+
+    // Otherwise shift LVGL buffer left by x_off bits
+    static std::array<uint8_t, LV_BUF_PIXELS> shifted{};
+    shifted.fill(0);
+
+    for (int i = 0; i < LV_BUF_PIXELS; ++i)
+    {
+        uint16_t v = static_cast<uint16_t>(src[i]) << x_off;
+
+        if (i + 1 < LV_BUF_PIXELS)
+        {
+            v |= static_cast<uint16_t>(src[i + 1]) >> (8 - x_off);
+        }
+
+        shifted[i] = static_cast<uint8_t>(v);
+    }
+
+    oled->blitLVGLBuffer(std::span<const uint8_t>(shifted.data(), LV_BUF_PIXELS));
     oled->update();
 
     lv_display_flush_ready(disp);

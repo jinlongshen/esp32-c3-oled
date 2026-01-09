@@ -32,7 +32,7 @@ constexpr std::size_t SSD1306_PAGES = SSD1306_HEIGHT / 8;
 constexpr std::size_t OLED_WIDTH = 72;
 constexpr std::size_t OLED_HEIGHT = 40;
 constexpr std::size_t OLED_PAGES = OLED_HEIGHT / 8;
-constexpr std::size_t OLED_X_OFFSET = 27;
+constexpr std::size_t OLED_X_OFFSET = 28;
 constexpr std::size_t OLED_Y_OFFSET = 24;
 
 // -----------------------------------------------------------------------------
@@ -81,6 +81,7 @@ class Oled
     // Framebuffer for the visible OLED region
     std::array<std::uint8_t, OLED_WIDTH * OLED_HEIGHT / 8> m_screen;
 
+    static constexpr bool LSB_FIRST = false;
     // Task + semaphore (unused unless startTask() is used)
     TaskHandle_t m_task = nullptr;
     SemaphoreHandle_t m_frame_sem = nullptr;

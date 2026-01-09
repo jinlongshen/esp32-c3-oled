@@ -164,9 +164,10 @@ void Oled::notifyFrameReady() noexcept
 // Coordinates are in the logical 72x40 window (with offsets applied here).
 void Oled::drawPixel(int x, int y, bool on) noexcept
 {
-    // Map logical (x, y) to framebuffer-local coordinates
-    int fx = x - static_cast<int>(OLED_X_OFFSET);
-    int fy = y - static_cast<int>(OLED_Y_OFFSET);
+    // Logical coordinates in the 72x40 window: x ∈ [0, OLED_WIDTH), y ∈ [0, OLED_HEIGHT)
+
+    int fx = x;
+    int fy = y;
 
     if (fx < 0 || fx >= static_cast<int>(OLED_WIDTH) || fy < 0 ||
         fy >= static_cast<int>(OLED_HEIGHT))
@@ -205,7 +206,15 @@ void Oled::blitLVGLBuffer(std::span<const std::uint8_t> lvbuf) noexcept
         {
             int bit_index = y * static_cast<int>(OLED_WIDTH) + x;
             int byte_index = bit_index >> 3;
-            int bit_in_byte = 7 - (bit_index & 7);
+            int bit_in_byte = 0;
+            if constexpr (LSB_FIRST)
+            {
+                bit_in_byte = (bit_index & 7); // LVGL I1 format
+            }
+            else
+            {
+                bit_in_byte = 7 - (bit_index & 7); // MSB-first format
+            }
 
             bool on = (lvbuf[byte_index] >> bit_in_byte) & 0x1;
             if (!on)
@@ -231,21 +240,17 @@ void Oled::clear() noexcept
     m_screen.fill(0);
 }
 
-// Push logical 72x40 window (m_screen) into the correct 128x64 SSD1306 address
-// space using OLED_X_OFFSET and OLED_Y_OFFSET.
-//
-// This is blocking and must only be called from the OLED task.
 void Oled::update() noexcept
 {
     for (std::size_t p = 0; p < OLED_PAGES; ++p)
     {
-        // Physical page in SSD1306 address space
+        // Physical page in SSD1306 address space (apply Y offset here)
         std::uint8_t phys_page = static_cast<std::uint8_t>(p + (OLED_Y_OFFSET / 8));
 
-        // Move column pointer to the start of the visible window
-        setPageColumn(phys_page, static_cast<std::uint8_t>(OLED_X_OFFSET));
+        // Move column pointer to the start of the visible window (local column 0)
+        setPageColumn(phys_page, 0);
 
-        // Start of this page in m_screen
+        // Start of this page in m_screen (local 72-byte strip)
         const std::uint8_t* row_ptr = m_screen.data() + (p * OLED_WIDTH);
 
         // Send the 72 bytes for this horizontal strip
@@ -291,17 +296,16 @@ void Oled::setPageColumn(std::uint8_t page, std::uint8_t column) noexcept
     // Visible columns are 0–127
     column &= 0x7F;
 
-    // Hardware column pointer is shifted by +1 on this module
-    std::uint8_t hw_column = static_cast<std::uint8_t>(column + 1);
+    // Map local column to hardware: apply OLED_X_OFFSET and +1 quirk
+    std::uint8_t hw_column = static_cast<std::uint8_t>(column + OLED_X_OFFSET);
 
     // Set page
     sendCmd(static_cast<Command>(0xB0 | page));
-
     // Set lower 4 bits of column
     sendCmd(static_cast<Command>(0x00 | (hw_column & 0x0F)));
-
     // Set upper 4 bits of column
     sendCmd(static_cast<Command>(0x10 | ((hw_column >> 4) & 0x0F)));
+    ESP_LOGI("COL", "column=%u hw_column=%u", column, hw_column);
 }
 
 } // namespace ssd1306
