@@ -1,6 +1,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
+#include <array>
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -59,6 +60,7 @@ static void draw_text(muc::ssd1306::Oled& oled,
 void font_test_task(void* pvParameters)
 {
     auto& oled = *static_cast<muc::ssd1306::Oled*>(pvParameters);
+    const auto& geom = oled.geometry();
 
     FontRenderer renderer;
 
@@ -77,50 +79,50 @@ void font_test_task(void* pvParameters)
         oled.clear();
 
         // ---------------------------------------------------------------------
-        // 1. Draw border box around the visible 72×40 window
+        // 1. Draw border box around the visible window
         // ---------------------------------------------------------------------
-        for (int x = 0; x < muc::ssd1306::OLED_WIDTH; ++x)
+        for (int x = 0; x < geom.width; ++x)
         {
             oled.drawPixel(x, 0, true);
-            oled.drawPixel(x, muc::ssd1306::OLED_HEIGHT - 1, true);
+            oled.drawPixel(x, geom.height - 1, true);
         }
 
-        for (int y = 0; y < muc::ssd1306::OLED_HEIGHT; ++y)
+        for (int y = 0; y < geom.height; ++y)
         {
             oled.drawPixel(0, y, true);
-            oled.drawPixel(muc::ssd1306::OLED_WIDTH - 1, y, true);
+            oled.drawPixel(geom.width - 1, y, true);
         }
 
         // ---------------------------------------------------------------------
-        // 2. Horizontal ruler (0–71)
+        // 2. Horizontal ruler
         // ---------------------------------------------------------------------
-        for (int x = 0; x < muc::ssd1306::OLED_WIDTH; ++x)
+        for (int x = 0; x < geom.width; ++x)
         {
             if (x % 4 == 0)
                 oled.drawPixel(x, 10, true);
         }
 
-        for (int x = 0; x < muc::ssd1306::OLED_WIDTH; x += 8)
+        for (int x = 0; x < geom.width; x += 8)
         {
-            char buf[8];
-            std::snprintf(buf, sizeof(buf), "%d", x);
-            draw_text(oled, renderer, x, 12, buf);
+            std::array<std::uint8_t, 16> buf{};
+            std::snprintf(reinterpret_cast<char*>(buf.data()), buf.size(), "%d", x);
+            draw_text(oled, renderer, x, 12, reinterpret_cast<char*>(buf.data()));
         }
 
         // ---------------------------------------------------------------------
-        // 3. Vertical ruler (0–39)
+        // 3. Vertical ruler
         // ---------------------------------------------------------------------
-        for (int y = 0; y < muc::ssd1306::OLED_HEIGHT; ++y)
+        for (int y = 0; y < geom.height; ++y)
         {
             if (y % 4 == 0)
                 oled.drawPixel(10, y, true);
         }
 
-        for (int y = 0; y < muc::ssd1306::OLED_HEIGHT; y += 8)
+        for (int y = 0; y < geom.height; y += 8)
         {
-            char buf[8];
-            std::snprintf(buf, sizeof(buf), "%d", y);
-            draw_text(oled, renderer, 12, y, buf);
+            std::array<std::uint8_t, 16> buf{};
+            std::snprintf(reinterpret_cast<char*>(buf.data()), buf.size(), "%d", y);
+            draw_text(oled, renderer, 12, y, reinterpret_cast<char*>(buf.data()));
         }
 
         // ---------------------------------------------------------------------
@@ -130,12 +132,12 @@ void font_test_task(void* pvParameters)
         std::snprintf(info,
                       sizeof(info),
                       "X=%d Y=%d W=%d H=%d",
-                      (int)muc::ssd1306::OLED_X_OFFSET,
-                      (int)muc::ssd1306::OLED_Y_OFFSET,
-                      (int)muc::ssd1306::OLED_WIDTH,
-                      (int)muc::ssd1306::OLED_HEIGHT);
+                      (int)geom.x_offset,
+                      (int)geom.y_offset,
+                      (int)geom.width,
+                      (int)geom.height);
 
-        draw_text(oled, renderer, 2, muc::ssd1306::OLED_HEIGHT - 10, info);
+        draw_text(oled, renderer, 2, geom.height - 10, info);
 
         // ---------------------------------------------------------------------
         // 5. Update display

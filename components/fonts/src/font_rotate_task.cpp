@@ -24,7 +24,6 @@ extern const std::uint8_t _binary_oled_subset_ascii_umlaut_ttf_end[] asm(
 
 namespace muc::fonts
 {
-
 void font_rotate_task(void* pvParameters)
 {
     auto& oled = *static_cast<muc::ssd1306::Oled*>(pvParameters);
@@ -48,7 +47,7 @@ void font_rotate_task(void* pvParameters)
         oled.clear();
 
         // ---------------------------------------------------------------------
-        // PASS 1: Compute bounding box of the text (local coordinates)
+        // PASS 1: Compute bounding box
         // ---------------------------------------------------------------------
         double minX = 1e9, maxX = -1e9;
         double minY = 1e9, maxY = -1e9;
@@ -94,10 +93,11 @@ void font_rotate_task(void* pvParameters)
         double text_mid_y = (minY + maxY) * 0.5;
 
         // ---------------------------------------------------------------------
-        // STEP 2: Choose screen center (local framebuffer coordinates)
+        // STEP 2: Use instance geometry
         // ---------------------------------------------------------------------
-        double screen_cx = muc::ssd1306::OLED_WIDTH * 0.5;
-        double screen_cy = muc::ssd1306::OLED_HEIGHT * 0.5;
+        const auto& g = oled.geometry();
+        double screen_cx = g.width * 0.5;
+        double screen_cy = g.height * 0.5;
 
         // Optional aesthetic shift upward
         screen_cy -= 4.0;

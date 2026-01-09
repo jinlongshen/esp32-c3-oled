@@ -1,18 +1,17 @@
-#ifndef COMPONENT_LVGL_DRIVER_LVGL_DISPLAY_H
-#define COMPONENT_LVGL_DRIVER_LVGL_DISPLAY_H
+#pragma once
 
+#include <cstdint>
+#include "lvgl.h"
 #include "ssd1306.h"
 
 namespace muc::lvgl_driver
 {
 
-// LVGL visible area = OLED glass area
-constexpr std::size_t LVGL_WIDTH = 72;
-constexpr std::size_t LVGL_HEIGHT = 40;
-constexpr std::size_t LV_BUF_PIXELS = (LVGL_WIDTH * LVGL_HEIGHT) / 8;
-constexpr std::size_t LV_BUF_SIZE = LV_BUF_PIXELS + 8;
+// Initialize LVGL display using compile‑time geometry and internal buffers.
+void init_display(lv_display_t& disp,
+                  lv_draw_buf_t& draw_buf_unused,
+                  muc::ssd1306::Oled& oled,
+                  std::uint8_t* buf_memory_unused,
+                  std::size_t buf_size_unused);
 
-void lvgl_display_init(muc::ssd1306::Oled& oled);
 } // namespace muc::lvgl_driver
-
-#endif // COMPONENT_LVGL_DRIVER_LVGL_DISPLAY_H
