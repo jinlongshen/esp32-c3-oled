@@ -11,6 +11,7 @@ namespace muc::fonts
 {
 void font_task(void* pvParameters);
 void font_test_task(void* pvParameters);
+void font_rotate_task(void* pvParameters);
 }
 
 extern "C" void app_main(void)
@@ -26,6 +27,9 @@ extern "C" void app_main(void)
     muc::lvgl_driver::init(oled);
     xTaskCreate(muc::lvgl_driver::lvgl_handler_task, "lvgl_handler_task", 20480, &oled, 5, nullptr);
     xTaskCreate(muc::lvgl_driver::lvgl_tick_task, "lvgl_tick_task", 2048, nullptr, 3, nullptr);
+
+    // xTaskCreate(muc::fonts::font_test_task, "font_test_task", 20480, &oled, 5, nullptr);
+    // xTaskCreate(muc::fonts::font_rotate_task, "font_rotate_task", 20480, &oled, 5, nullptr);
 
     // -------------------------------------------------------------------------
     // Idle loop

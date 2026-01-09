@@ -3,7 +3,7 @@
 
 namespace muc::fonts
 {
-void font_task(void* pvParameters);
+void font_rotate_task(void* pvParameters);
 }
 
 #endif // COMPONENTS_FONT_TEST_TASK_H

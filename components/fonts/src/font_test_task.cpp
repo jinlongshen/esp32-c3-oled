@@ -51,6 +51,7 @@ static void draw_text(muc::ssd1306::Oled& oled,
                 }
             }
         }
+
         pen_x += (g->advance.x >> 6);
     }
 }
@@ -76,22 +77,18 @@ void font_test_task(void* pvParameters)
         oled.clear();
 
         // ---------------------------------------------------------------------
-        // 1. Draw border box around the visible glass
+        // 1. Draw border box around the visible 72×40 window
         // ---------------------------------------------------------------------
         for (int x = 0; x < muc::ssd1306::OLED_WIDTH; ++x)
         {
-            oled.drawPixel(muc::ssd1306::OLED_X_OFFSET + x, muc::ssd1306::OLED_Y_OFFSET, true);
-            oled.drawPixel(muc::ssd1306::OLED_X_OFFSET + x,
-                           muc::ssd1306::OLED_Y_OFFSET + muc::ssd1306::OLED_HEIGHT - 1,
-                           true);
+            oled.drawPixel(x, 0, true);
+            oled.drawPixel(x, muc::ssd1306::OLED_HEIGHT - 1, true);
         }
 
         for (int y = 0; y < muc::ssd1306::OLED_HEIGHT; ++y)
         {
-            oled.drawPixel(muc::ssd1306::OLED_X_OFFSET, muc::ssd1306::OLED_Y_OFFSET + y, true);
-            oled.drawPixel(muc::ssd1306::OLED_X_OFFSET + muc::ssd1306::OLED_WIDTH - 1,
-                           muc::ssd1306::OLED_Y_OFFSET + y,
-                           true);
+            oled.drawPixel(0, y, true);
+            oled.drawPixel(muc::ssd1306::OLED_WIDTH - 1, y, true);
         }
 
         // ---------------------------------------------------------------------
@@ -100,22 +97,14 @@ void font_test_task(void* pvParameters)
         for (int x = 0; x < muc::ssd1306::OLED_WIDTH; ++x)
         {
             if (x % 4 == 0)
-            {
-                oled.drawPixel(
-                    muc::ssd1306::OLED_X_OFFSET + x, muc::ssd1306::OLED_Y_OFFSET + 10, true);
-            }
+                oled.drawPixel(x, 10, true);
         }
 
-        // Label every 8 pixels
         for (int x = 0; x < muc::ssd1306::OLED_WIDTH; x += 8)
         {
             char buf[8];
             std::snprintf(buf, sizeof(buf), "%d", x);
-            draw_text(oled,
-                      renderer,
-                      muc::ssd1306::OLED_X_OFFSET + x,
-                      muc::ssd1306::OLED_Y_OFFSET + 12,
-                      buf);
+            draw_text(oled, renderer, x, 12, buf);
         }
 
         // ---------------------------------------------------------------------
@@ -124,22 +113,14 @@ void font_test_task(void* pvParameters)
         for (int y = 0; y < muc::ssd1306::OLED_HEIGHT; ++y)
         {
             if (y % 4 == 0)
-            {
-                oled.drawPixel(
-                    muc::ssd1306::OLED_X_OFFSET + 10, muc::ssd1306::OLED_Y_OFFSET + y, true);
-            }
+                oled.drawPixel(10, y, true);
         }
 
-        // Label every 8 pixels
         for (int y = 0; y < muc::ssd1306::OLED_HEIGHT; y += 8)
         {
             char buf[8];
             std::snprintf(buf, sizeof(buf), "%d", y);
-            draw_text(oled,
-                      renderer,
-                      muc::ssd1306::OLED_X_OFFSET + 12,
-                      muc::ssd1306::OLED_Y_OFFSET + y,
-                      buf);
+            draw_text(oled, renderer, 12, y, buf);
         }
 
         // ---------------------------------------------------------------------
@@ -154,11 +135,7 @@ void font_test_task(void* pvParameters)
                       (int)muc::ssd1306::OLED_WIDTH,
                       (int)muc::ssd1306::OLED_HEIGHT);
 
-        draw_text(oled,
-                  renderer,
-                  muc::ssd1306::OLED_X_OFFSET + 2,
-                  muc::ssd1306::OLED_Y_OFFSET + muc::ssd1306::OLED_HEIGHT - 10,
-                  info);
+        draw_text(oled, renderer, 2, muc::ssd1306::OLED_HEIGHT - 10, info);
 
         // ---------------------------------------------------------------------
         // 5. Update display
