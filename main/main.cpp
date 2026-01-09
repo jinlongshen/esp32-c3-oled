@@ -5,8 +5,6 @@
 #include "ssd1306.h"
 #include "display_geometry.h"
 #include "lvgl_driver.h"
-#include "lvgl_display.h"
-#include "lvgl_tasks.h"
 
 namespace muc::fonts
 {
@@ -30,7 +28,7 @@ extern "C" void app_main(void)
     muc::lvgl_driver::LvglTaskConfig lvgl_task_cfg{.tick_period_ms = 5, .handler_period_ms = 10};
     xTaskCreate(muc::lvgl_driver::lvgl_handler_task,
                 "lvgl_handler_task",
-                20480,
+                1024 * 8,
                 &lvgl_task_cfg,
                 5,
                 nullptr);
@@ -38,9 +36,8 @@ extern "C" void app_main(void)
         muc::lvgl_driver::lvgl_tick_task, "lvgl_tick_task", 2048, &lvgl_task_cfg, 3, nullptr);
 #endif
 
-    // const muc::lvgl_driver::LvglTaskConfig cfg{ .tick_period_ms = 5, .handler_period_ms = 10 };
-    // xTaskCreate(muc::fonts::font_test_task, "font_test_task", 20480, &cfg, 5, nullptr);
-    // xTaskCreate(muc::fonts::font_rotate_task, "font_rotate_task", 20480, &cfg, 5, nullptr);
+    // xTaskCreate(muc::fonts::font_test_task, "font_test_task", 20480, &oled, 5, nullptr);
+    // xTaskCreate(muc::fonts::font_rotate_task, "font_rotate_task", 20480, &oled, 5, nullptr);
 
     // -------------------------------------------------------------------------
     // Idle loop

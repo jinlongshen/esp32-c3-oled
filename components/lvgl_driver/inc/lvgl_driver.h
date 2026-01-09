@@ -1,23 +1,25 @@
-#ifndef COMPONENT_LVGL_DRIVER_LVGL_DRIVER_H
-#define COMPONENT_LVGL_DRIVER_LVGL_DRIVER_H
+#ifndef COMPONENT_LVGL_DRIVER_H
+#define COMPONENT_LVGL_DRIVER_H
 
+#include <cstdint>
+#include "lvgl.h"
 #include "ssd1306.h"
 
 namespace muc::lvgl_driver
 {
 
-/**
- * Initialize the LVGL display driver for the given SSD1306 OLED.
- *
- * This:
- *  - Creates an LVGL display with geometry from oled.geometry()
- *  - Sets LV_COLOR_FORMAT_I1
- *  - Installs the flush callback
- *  - Sets up the LVGL draw buffer
- *  - Performs an optional hardware test pattern
- */
+struct LvglTaskConfig
+{
+    std::uint32_t tick_period_ms;
+    std::uint32_t handler_period_ms;
+};
+
+constexpr bool ENABLE_HANDLE_TEST = false;
+
 void lvgl_driver_init(muc::ssd1306::Oled& oled);
+void lvgl_tick_task(void* arg);
+void lvgl_handler_task(void* arg);
 
 } // namespace muc::lvgl_driver
 
-#endif // COMPONENT_LVGL_DRIVER_LVGL_DRIVER_H
+#endif //

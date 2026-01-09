@@ -26,6 +26,7 @@ namespace muc::fonts
 {
 void font_rotate_task(void* pvParameters)
 {
+    configASSERT(pvParameters && "font_rotate_task: pvParameters is nullptr");
     auto& oled = *static_cast<muc::ssd1306::Oled*>(pvParameters);
     muc::fonts::FontRenderer renderer;
 

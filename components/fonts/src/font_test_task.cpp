@@ -59,6 +59,7 @@ static void draw_text(muc::ssd1306::Oled& oled,
 
 void font_test_task(void* pvParameters)
 {
+    configASSERT(pvParameters && "font_test_task: pvParameters is nullptr");
     auto& oled = *static_cast<muc::ssd1306::Oled*>(pvParameters);
     const auto& geom = oled.geometry();
 

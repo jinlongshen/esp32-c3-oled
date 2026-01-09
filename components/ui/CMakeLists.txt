@@ -1,0 +1,10 @@
+idf_component_register(
+    SRCS
+        "src/ui_queue.cpp"
+        "src/ui_api.cpp"
+        "src/ui_consumer_task.cpp"
+    INCLUDE_DIRS
+        "inc"
+    REQUIRES
+        lvgl
+)
