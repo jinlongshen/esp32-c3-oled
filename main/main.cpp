@@ -3,8 +3,9 @@
 #include "I2CBus.h"
 #include "I2CDevice.h"
 #include "ssd1306.h"
-
 #include "lvgl_driver.h"
+#include "lvgl_display.h"
+#include "lvgl_tasks.h"
 
 namespace muc::fonts
 {

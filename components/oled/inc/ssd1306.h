@@ -1,5 +1,5 @@
-#ifndef MUC_OLED_SSD1306_H
-#define MUC_OLED_SSD1306_H
+#ifndef COMPONENTS_OLED_SSD1306_H
+#define COMPONENTS_OLED_SSD1306_H
 
 #include <array>
 #include <cstddef>
@@ -19,6 +19,8 @@ namespace muc
 namespace ssd1306
 {
 
+constexpr std::uint8_t OLED_ADDR = 0x3C;
+
 // -----------------------------------------------------------------------------
 // Constants: Chip & Board Geometry
 // -----------------------------------------------------------------------------
@@ -32,8 +34,6 @@ constexpr std::size_t OLED_HEIGHT = 40;
 constexpr std::size_t OLED_PAGES = OLED_HEIGHT / 8;
 constexpr std::size_t OLED_X_OFFSET = 27;
 constexpr std::size_t OLED_Y_OFFSET = 24;
-
-constexpr std::uint8_t OLED_ADDR = 0x3C;
 
 // -----------------------------------------------------------------------------
 // OLED driver class
@@ -89,4 +89,4 @@ class Oled
 } // namespace ssd1306
 } // namespace muc
 
-#endif // MUC_OLED_SSD1306_H
+#endif // COMPONENTS_OLED_SSD1306_H
