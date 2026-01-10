@@ -10,6 +10,8 @@
 #include "freertos/task.h"
 #include "display_geometry.h"
 
+// #include "lv_font_custom_12.h"
+
 namespace muc::lvgl_driver
 {
 
@@ -102,7 +104,10 @@ static void init_display(lv_display_t& disp, muc::ssd1306::Oled& oled)
     // Simple LVGL test
     lv_obj_t* scr = lv_screen_active();
     lv_obj_t* label = lv_label_create(scr);
+    // lv_obj_set_style_text_font(label, &lv_font_custom_12, 0);
+    // lv_label_set_text(label, "元旦结束了");
     lv_label_set_text(label, "Hello");
+
     lv_obj_center(label);
 
     std::printf("[LVGL] Init complete (%dx%d, LVGL buf=%zu, FB=%zu)\n",
