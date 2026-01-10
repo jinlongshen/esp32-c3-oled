@@ -7,14 +7,9 @@ UseTab: Never
 ColumnLimit: 100
 
 # --- Braces & Blocks ---
-# This forces the Allman style (braces on new lines)
 BreakBeforeBraces: Allman
-
-# This forces braces to be added to 'if', 'else', 'for', 'while' 
-# even if they are single-line (Requires clang-format 15+)
 InsertBraces: true
 
-# Disallow single-line shorthand
 AllowShortFunctionsOnASingleLine: None
 AllowShortIfStatementsOnASingleLine: false
 AllowShortLoopsOnASingleLine: false
@@ -46,7 +41,6 @@ AllowAllParametersOfDeclarationOnNextLine: false
 IndentWrappedFunctionNames: false
 
 # --- Alignment ---
-# PointerAlignment: Left means 'char* p'
 PointerAlignment: Left
 ReferenceAlignment: Left
 
@@ -55,20 +49,23 @@ SpacesInParentheses: false
 SpacesInSquareBrackets: false
 
 # --- Include Handling ---
-# Your manual control settings
-SortIncludes: false
-IncludeBlocks: Preserve
+SortIncludes: true
+IncludeBlocks: Regroup
 
 IncludeCategories:
-  - Regex: '^"{file_base}\\.h"$'
+  # 1. Same-named header (manually placed first in source file)
+  - Regex: '^{file_base}\.h$'
     Priority: 1
-    SortPriority: 0
-  - Regex: '^<[a-z0-9_]+\\.h>$'
+
+  # 2. C standard headers: <stdio.h>, <stdint.h>, <stdlib.h>, etc.
+  - Regex: '^<([a-z0-9_]+)\.h>$'
     Priority: 2
-    SortPriority: 1
+
+  # 3. C++ standard headers: <vector>, <string>, <memory>, etc.
   - Regex: '^<[a-zA-Z][a-zA-Z0-9_]*>$'
     Priority: 3
-    SortPriority: 2
+
+  # 4. Everything else (project headers, third-party headers)
   - Regex: '.*'
     Priority: 4
-    SortPriority: 3
+
