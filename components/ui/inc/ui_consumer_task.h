@@ -7,16 +7,24 @@
 namespace muc::ui
 {
 
+struct LvglTaskConfig
+{
+    std::uint32_t tick_period_ms;
+    std::uint32_t handler_period_ms;
+    UiQueue* user_data;
+};
+
 class UiConsumerTask
 {
   public:
-    UiConsumerTask(UiQueue& queue, lv_obj_t* label);
+    static void ui_init_task(void* arg);
+    static void lvgl_tick_task(void* arg);
+    static void lvgl_handler_task(void* arg);
 
-    static void task_entry(void* arg);
+    static void set_label(lv_obj_t* lbl);
 
   private:
-    UiQueue& m_queue;
-    lv_obj_t* m_label;
+    static lv_obj_t* s_label;
 };
 
 } // namespace muc::ui

@@ -10,7 +10,7 @@
 namespace muc::ui
 {
 
-enum class UiCommandType : uint8_t
+enum class UiCommandType : std::uint8_t
 {
     SetLabelText,
     ClearScreen,

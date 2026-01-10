@@ -8,17 +8,9 @@
 namespace muc::lvgl_driver
 {
 
-struct LvglTaskConfig
-{
-    std::uint32_t tick_period_ms;
-    std::uint32_t handler_period_ms;
-};
-
 constexpr bool ENABLE_HANDLE_TEST = false;
 
 void lvgl_driver_init(muc::ssd1306::Oled& oled);
-void lvgl_tick_task(void* arg);
-void lvgl_handler_task(void* arg);
 
 } // namespace muc::lvgl_driver
 
