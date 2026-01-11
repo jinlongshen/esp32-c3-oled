@@ -22,9 +22,13 @@ class UiConsumerTask
     static void lvgl_handler_task(void* arg);
 
     static void set_label(lv_obj_t* lbl);
+    static void set_status_label(lv_obj_t* lbl);
+    static void set_cpu_percent_label(lv_obj_t* lbl);
 
   private:
     static lv_obj_t* s_label;
+    static lv_obj_t* s_status_label;
+    static lv_obj_t* s_cpu_percent_label;
 };
 
 } // namespace muc::ui

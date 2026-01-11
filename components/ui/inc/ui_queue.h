@@ -10,18 +10,34 @@
 namespace muc::ui
 {
 
+// -----------------------------------------------------------------------------
+// Updated command types
+// -----------------------------------------------------------------------------
 enum class UiCommandType : std::uint8_t
 {
     SetLabelText,
+    SetStatusText,
+    SetCpuUsage,
     ClearScreen,
 };
 
+// -----------------------------------------------------------------------------
+// Updated message struct
+// -----------------------------------------------------------------------------
 struct UiMessage
 {
     UiCommandType type;
+
+    // Text payload (for label + status)
     std::array<char, 64> text{};
+
+    // Numeric payload (for CPU usage)
+    int value = 0;
 };
 
+// -----------------------------------------------------------------------------
+// Queue wrapper
+// -----------------------------------------------------------------------------
 class UiQueue
 {
   public:

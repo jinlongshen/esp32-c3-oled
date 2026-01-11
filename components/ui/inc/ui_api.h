@@ -13,6 +13,8 @@ class UiApi
     explicit UiApi(UiQueue& queue);
 
     void set_text(std::string_view text);
+    void set_status(std::string_view text);
+    void set_cpu_usage(int percent);
     void clear_screen();
 
   private:

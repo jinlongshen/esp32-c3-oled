@@ -48,31 +48,41 @@ extern "C" void app_main(void)
     static muc::ui::UiQueue ui_queue(10);
     static muc::ui::UiApi ui_api(ui_queue);
 
-    // Pass queue pointer to handler task via user_data
     static muc::ui::LvglTaskConfig lvgl_task_cfg{
-        .tick_period_ms = 20, .handler_period_ms = 40, .user_data = &ui_queue};
+        .tick_period_ms = 20,
+        .handler_period_ms = 40,
+        .user_data = &ui_queue
+    };
 
     // ---------------------------------------------------------------------
-    // 4. Start LVGL tasks (inside UI module)
+    // 4. Start LVGL tasks
     // ---------------------------------------------------------------------
-    xTaskCreate(muc::ui::UiConsumerTask::lvgl_tick_task,
-                "lvgl_tick_task",
-                2048,
-                &lvgl_task_cfg,
-                1,
-                nullptr);
+    xTaskCreate(
+        muc::ui::UiConsumerTask::lvgl_tick_task,
+        "lvgl_tick_task",
+        2048,
+        &lvgl_task_cfg,
+        1,
+        nullptr);
 
-    xTaskCreate(muc::ui::UiConsumerTask::lvgl_handler_task,
-                "lvgl_handler_task",
-                8192,
-                &lvgl_task_cfg,
-                2,
-                nullptr);
+    xTaskCreate(
+        muc::ui::UiConsumerTask::lvgl_handler_task,
+        "lvgl_handler_task",
+        8192,
+        &lvgl_task_cfg,
+        2,
+        nullptr);
 
     // ---------------------------------------------------------------------
-    // 5. Start UI initialization task (creates label, sends initial text)
+    // 5. Start UI initialization task
     // ---------------------------------------------------------------------
-    xTaskCreate(muc::ui::UiConsumerTask::ui_init_task, "ui_init_task", 4096, &ui_api, 3, nullptr);
+    xTaskCreate(
+        muc::ui::UiConsumerTask::ui_init_task,
+        "ui_init_task",
+        4096,
+        &ui_api,
+        3,
+        nullptr);
 
     // ---------------------------------------------------------------------
     // 6. Optional font test tasks (kept exactly as requested)
@@ -83,7 +93,13 @@ extern "C" void app_main(void)
     // ---------------------------------------------------------------------
     // 7. Start stack monitor task
     // ---------------------------------------------------------------------
-    xTaskCreate(stack_monitor_task, "stack_monitor", 4096, nullptr, 1, nullptr);
+    xTaskCreate(
+        stack_monitor_task,
+        "stack_monitor",
+        4096,
+        nullptr,
+        1,
+        nullptr);
 
     // ---------------------------------------------------------------------
     // 8. Idle loop
@@ -93,6 +109,16 @@ extern "C" void app_main(void)
     {
         vTaskDelay(pdMS_TO_TICKS(2000));
         ESP_LOGI("DBG", "alive");
-        ui_api.set_text(itostring_digit(i++));
+
+        // Update main label
+        ui_api.set_text(itostring_digit(i % 10));
+
+        // Update status label
+        ui_api.set_status("OK");
+
+        // Update CPU percentage (fake load)
+        ui_api.set_cpu_usage((i * 13) % 100);
+
+        i++;
     }
 }
