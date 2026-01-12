@@ -5,6 +5,7 @@
 #include <cstring>
 #include <span>
 
+#include "esp_heap_caps.h"
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/FreeRTOSConfig.h"
@@ -73,6 +74,29 @@ void monitor_cpu_usage(std::span<TaskStatus_t> tasks, std::uint32_t total_runtim
     ESP_LOGI(TAG, "TOTAL CPU LOAD: %.2f%%", total_cpu_load);
 }
 
+void monitor_heap_usage()
+{
+    // Get stats for internal RAM (DRAM)
+    std::uint32_t free_heap = heap_caps_get_free_size(MALLOC_CAP_INTERNAL);
+    std::uint32_t total_heap = heap_caps_get_total_size(MALLOC_CAP_INTERNAL);
+    std::uint32_t min_free = heap_caps_get_minimum_free_size(MALLOC_CAP_INTERNAL);
+
+    std::uint32_t used_heap = total_heap - free_heap;
+    float usage_percent = (static_cast<float>(used_heap) / total_heap) * 100.0f;
+
+    ESP_LOGI("MEMORY", "--- Heap Stats (Internal RAM) ---");
+    ESP_LOGI("MEMORY", "Total: %lu bytes", (unsigned long)total_heap);
+    ESP_LOGI("MEMORY", "Used : %lu bytes (%.2f%%)", (unsigned long)used_heap, usage_percent);
+    ESP_LOGI("MEMORY", "Free : %lu bytes", (unsigned long)free_heap);
+
+    // This is the "High Water Mark" for the whole system
+    ESP_LOGI("MEMORY", "Min Free Ever: %lu bytes", (unsigned long)min_free);
+
+    // Check for memory fragmentation
+    std::uint32_t largest_block = heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL);
+    ESP_LOGI("MEMORY", "Largest Contiguous Block: %lu bytes", (unsigned long)largest_block);
+}
+
 extern "C" void stack_monitor_task(void* arg)
 {
     (void)arg;
@@ -111,6 +135,9 @@ extern "C" void stack_monitor_task(void* arg)
         {
             ESP_LOGE(TAG, "Memory allocation failed");
         }
+
+        // 3. Heap Usage Monitor
+        monitor_heap_usage();
 
         vTaskDelay(pdMS_TO_TICKS(5000));
     }
