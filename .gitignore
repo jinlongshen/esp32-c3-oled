@@ -39,6 +39,9 @@
 
 # debug information files
 *.dwo
+
+# ESP-IDF Generated files
+sdkconfig
 sdkconfig.old
 
 # build
@@ -46,4 +49,5 @@ sdkconfig.old
 build/
 
 # vscode
+managed_components
 dependencies.lock
