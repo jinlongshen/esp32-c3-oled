@@ -20,6 +20,7 @@ NamespaceIndentation: None
 IndentExternBlock: NoIndent
 
 # --- Whitespace & Lines ---
+# This keeps your multiple empty lines reduced to exactly one.
 MaxEmptyLinesToKeep: 1
 AlignTrailingComments: true
 SpacesBeforeTrailingComments: 1
@@ -50,22 +51,22 @@ SpacesInSquareBrackets: false
 
 # --- Include Handling ---
 SortIncludes: true
-IncludeBlocks: Regroup
+# Changed to Preserve to stop headers from moving between sections.
+IncludeBlocks: Preserve
 
 IncludeCategories:
-  # 1. Same-named header (manually placed first in source file)
+  # 1. Same-named header (manually placed first in source file) 
   - Regex: '^{file_base}\.h$'
     Priority: 1
 
-  # 2. C standard headers: <stdio.h>, <stdint.h>, <stdlib.h>, etc.
+  # 2. C standard headers: <stdio.h>, <stdint.h>, <stdlib.h>, etc. 
   - Regex: '^<([a-z0-9_]+)\.h>$'
     Priority: 2
 
-  # 3. C++ standard headers: <vector>, <string>, <memory>, etc.
+  # 3. C++ standard headers: <vector>, <string>, <memory>, etc. [cite: 6]
   - Regex: '^<[a-zA-Z][a-zA-Z0-9_]*>$'
     Priority: 3
 
-  # 4. Everything else (project headers, third-party headers)
+  # 4. Everything else (project headers, third-party headers, ESP-IDF) [cite: 6]
   - Regex: '.*'
     Priority: 4
-
