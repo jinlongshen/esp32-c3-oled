@@ -33,6 +33,10 @@ static inline const char* itostring_digit(int v)
 
 extern "C" void app_main(void)
 {
+    esp_log_level_set("UI_API", ESP_LOG_WARN);
+    esp_log_level_set("UI_QUEUE", ESP_LOG_WARN);
+    esp_log_level_set("PROVISION", ESP_LOG_INFO);
+
     // ---------------------------------------------------------------------
     // 0. Provisioning & Wi-Fi Initialization
     // ---------------------------------------------------------------------
