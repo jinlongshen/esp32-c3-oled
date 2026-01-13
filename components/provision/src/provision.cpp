@@ -8,6 +8,8 @@
 #include <wifi_provisioning/manager.h>
 #include <wifi_provisioning/scheme_ble.h>
 
+#include "qrcode.h"
+
 namespace muc::provision
 {
 
@@ -78,17 +80,32 @@ esp_err_t Provision::begin()
 
 void Provision::start_provisioning()
 {
-    ESP_LOGI(TAG, "Starting BLE Provisioning...");
-
     char service_name[12];
     get_device_service_name(service_name, sizeof(service_name));
-
-    // Security level 1 with a simple PoP (Proof of Possession)
-    wifi_prov_security_t security = WIFI_PROV_SECURITY_1;
     const char* pop = "abcd1234";
 
-    ESP_ERROR_CHECK(wifi_prov_mgr_start_provisioning(security, (void*)pop, service_name, NULL));
-    ESP_LOGI(TAG, "Provisioning started. Name: %s, POP: %s", service_name, pop);
+    // 1. Start provisioning service
+    ESP_ERROR_CHECK(
+        wifi_prov_mgr_start_provisioning(WIFI_PROV_SECURITY_1, (void*)pop, service_name, NULL));
+
+    // 2. Generate payload for the mobile app
+    char qr_payload[150];
+    snprintf(qr_payload,
+             sizeof(qr_payload),
+             "{\"ver\":\"v1\",\"name\":\"%s\",\"pop\":\"%s\",\"transport\":\"ble\"}",
+             service_name,
+             pop);
+
+    // 3. Print to console
+    ESP_LOGI(TAG, "=================================================");
+    ESP_LOGI(TAG, "Scan this QR code with ESP-Provisioning App:");
+
+    // Default config in this component version automatically uses the console
+    esp_qrcode_config_t cfg = ESP_QRCODE_CONFIG_DEFAULT();
+    esp_qrcode_generate(&cfg, qr_payload);
+
+    ESP_LOGI(TAG, "Payload: %s", qr_payload);
+    ESP_LOGI(TAG, "=================================================");
 }
 
 void Provision::wait_for_connection()
@@ -100,17 +117,20 @@ void Provision::event_handler(void* arg, esp_event_base_t base, int32_t id, void
 {
     Provision* self = static_cast<Provision*>(arg);
 
-    if (base == WIFI_PROV_EVENT && id == WIFI_PROV_CRED_SUCCESS)
-    {
-        ESP_LOGI(TAG, "Provisioning successful");
-    }
-    else if (base == WIFI_EVENT && id == WIFI_EVENT_STA_START)
+    if (base == WIFI_EVENT && id == WIFI_EVENT_STA_START)
     {
         esp_wifi_connect();
     }
     else if (base == IP_EVENT && id == IP_EVENT_STA_GOT_IP)
     {
-        ESP_LOGI(TAG, "Got IP Address");
+        // Cast the data to the correct IP event structure
+        ip_event_got_ip_t* event = (ip_event_got_ip_t*)data;
+
+        // Print the IP address to the terminal
+        ESP_LOGI(TAG, "--------------------------------------------");
+        ESP_LOGI(TAG, "Connected! IP Address: " IPSTR, IP2STR(&event->ip_info.ip));
+        ESP_LOGI(TAG, "--------------------------------------------");
+
         xEventGroupSetBits(self->_wifi_event_group, CONNECTED_BIT);
     }
 }

@@ -10,6 +10,7 @@
 #include "I2CDevice.h"
 #include "display_geometry.h"
 #include "lvgl_driver.h"
+#include "provision.h"
 #include "ssd1306.h"
 #include "ui_api.h"
 #include "ui_consumer_task.h"
@@ -32,6 +33,15 @@ static inline const char* itostring_digit(int v)
 
 extern "C" void app_main(void)
 {
+    // ---------------------------------------------------------------------
+    // 0. Provisioning & Wi-Fi Initialization
+    // ---------------------------------------------------------------------
+    // Instantiate the Provision manager. Static ensures it lives for the app duration.
+    static muc::provision::Provision provision_mgr;
+
+    // Initialize NVS, Network, and spawn the button monitoring task (GPIO 9).
+    provision_mgr.begin();
+
     // ---------------------------------------------------------------------
     // 1. Hardware initialization
     // ---------------------------------------------------------------------
