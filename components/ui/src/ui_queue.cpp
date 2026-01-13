@@ -1,30 +1,51 @@
 #include "ui_queue.h"
-
-#include <esp_log.h>
+#include <algorithm>
+#include <cstring>
+#include "ui_api.h"
 
 namespace muc::ui
 {
 
-UiQueue::UiQueue(std::size_t depth)
-: m_queue(xQueueCreate(depth, sizeof(UiMessage)))
+UiApi::UiApi(UiQueue& queue)
+: m_queue(queue)
 {
 }
 
-bool UiQueue::send(const UiMessage& msg) const
+void UiApi::set_text(std::string_view text)
 {
-    ESP_LOGI("UI_QUEUE", "send");
-    return xQueueSend(m_queue, &msg, 0) == pdTRUE;
+    UiMessage msg;
+    msg.type = UiCommandType::SetText;
+
+    // Manual copy instead of .set_payload()
+    size_t len = std::min(text.length(), msg.text.size() - 1);
+    std::memcpy(msg.text.data(), text.data(), len);
+    msg.text[len] = '\0';
+
+    m_queue.send(msg);
 }
 
-bool UiQueue::receive(UiMessage& msg) const
+void UiApi::set_status(std::string_view status)
 {
-    ESP_LOGI("UI_QUEUE", "receive wait");
-    bool ok = xQueueReceive(m_queue, &msg, portMAX_DELAY) == pdTRUE;
-    if (ok)
-    {
-        ESP_LOGI("UI_QUEUE", "receive OK");
-    }
-    return ok;
+    UiMessage msg;
+    msg.type = UiCommandType::SetStatus;
+
+    size_t len = std::min(status.length(), msg.text.size() - 1);
+    std::memcpy(msg.text.data(), status.data(), len);
+    msg.text[len] = '\0';
+
+    m_queue.send(msg);
+}
+
+void UiApi::show_provision_qr(std::string_view payload)
+{
+    UiMessage msg;
+    msg.type = UiCommandType::ShowQrCode;
+
+    size_t len = std::min(payload.length(), msg.text.size() - 1);
+    std::memcpy(msg.text.data(), payload.data(), len);
+    msg.text[len] = '\0';
+
+    m_queue.send(msg);
 }
 
 } // namespace muc::ui

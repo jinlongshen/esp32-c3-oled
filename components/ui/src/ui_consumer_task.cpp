@@ -1,107 +1,83 @@
 #include "ui_consumer_task.h"
-
 #include <esp_log.h>
-
+#include <cstring>
 #include "lvgl.h"
-#include "ui_api.h"
 
 namespace muc::ui
 {
 
-// Static members
-lv_obj_t* UiConsumerTask::s_label = nullptr;
+// Initialize static members
+lv_obj_t* UiConsumerTask::s_counter_label = nullptr;
 lv_obj_t* UiConsumerTask::s_status_label = nullptr;
-lv_obj_t* UiConsumerTask::s_cpu_percent_label = nullptr;
+lv_obj_t* UiConsumerTask::s_qr_code = nullptr;
 
-//
-// UI INIT TASK
-//
 void UiConsumerTask::ui_init_task(void* arg)
 {
-    auto* api = static_cast<UiApi*>(arg);
-    configASSERT(api && "ui_init_task: null UiApi");
+    // Apply Montserrat 12 Style
+    static lv_style_t style_main;
+    lv_style_init(&style_main);
+    lv_style_set_text_font(&style_main, &lv_font_montserrat_12);
 
-    lv_coord_t disp_w = lv_display_get_horizontal_resolution(NULL);
+    // TOP: Counter Label
+    s_counter_label = lv_label_create(lv_scr_act());
+    lv_obj_add_style(s_counter_label, &style_main, 0);
+    lv_obj_align(s_counter_label, LV_ALIGN_TOP_MID, 0, 0);
+    lv_label_set_text(s_counter_label, "0");
 
-    //
-    // MAIN LABEL (top, centered)
-    //
-    lv_obj_t* label = lv_label_create(lv_scr_act());
-    lv_label_set_long_mode(label, LV_LABEL_LONG_WRAP);
-    lv_obj_set_width(label, disp_w);
-    lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_CENTER, 0);
-    lv_label_set_text(label, "");
-    lv_obj_align(label, LV_ALIGN_TOP_MID, 0, 2);
-    UiConsumerTask::set_label(label);
+    // BOTTOM: Status/IP Label
+    s_status_label = lv_label_create(lv_scr_act());
+    lv_obj_add_style(s_status_label, &style_main, 0);
+    lv_obj_set_width(s_status_label, 72);
+    lv_obj_set_style_text_align(s_status_label, LV_TEXT_ALIGN_CENTER, 0);
+    lv_label_set_long_mode(s_status_label, LV_LABEL_LONG_SCROLL_CIRCULAR);
+    lv_obj_align(s_status_label, LV_ALIGN_BOTTOM_MID, 0, 0);
+    lv_label_set_text(s_status_label, "START");
 
-    //
-    // STATUS LABEL (bottom-left)
-    //
-    lv_obj_t* status = lv_label_create(lv_scr_act());
-    lv_label_set_text(status, "Rdy");
-    lv_obj_align(status, LV_ALIGN_BOTTOM_LEFT, 2, -1);
-    UiConsumerTask::set_status_label(status);
-
-    //
-    // CPU PERCENT LABEL (bottom-right)
-    //
-    lv_obj_t* cpu_pct = lv_label_create(lv_scr_act());
-    lv_label_set_text(cpu_pct, "00%");
-    lv_obj_align(cpu_pct, LV_ALIGN_BOTTOM_RIGHT, -2, -1);
-    UiConsumerTask::set_cpu_percent_label(cpu_pct);
-
-    //
-    // Initial text
-    //
-    api->set_text("Demo");
+    // Initially hide labels (View Mode: Provisioning)
+    lv_obj_add_flag(s_counter_label, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(s_status_label, LV_OBJ_FLAG_HIDDEN);
 
     vTaskDelete(nullptr);
 }
 
-//
-// SETTERS
-//
-void UiConsumerTask::set_label(lv_obj_t* lbl)
+void UiConsumerTask::set_view_mode(bool provisioning)
 {
-    s_label = lbl;
-}
-
-void UiConsumerTask::set_status_label(lv_obj_t* lbl)
-{
-    s_status_label = lbl;
-}
-
-void UiConsumerTask::set_cpu_percent_label(lv_obj_t* lbl)
-{
-    s_cpu_percent_label = lbl;
-}
-
-//
-// LVGL TICK TASK
-//
-void UiConsumerTask::lvgl_tick_task(void* arg)
-{
-    auto* cfg = static_cast<const LvglTaskConfig*>(arg);
-    configASSERT(cfg && "lvgl_tick_task: null config");
-
-    while (true)
+    if (provisioning)
     {
-        lv_tick_inc(cfg->tick_period_ms);
-        vTaskDelay(pdMS_TO_TICKS(cfg->tick_period_ms));
+        if (s_counter_label)
+        {
+            lv_obj_add_flag(s_counter_label, LV_OBJ_FLAG_HIDDEN);
+        }
+        if (s_status_label)
+        {
+            lv_obj_add_flag(s_status_label, LV_OBJ_FLAG_HIDDEN);
+        }
+        if (s_qr_code)
+        {
+            lv_obj_clear_flag(s_qr_code, LV_OBJ_FLAG_HIDDEN);
+        }
+    }
+    else
+    {
+        if (s_counter_label)
+        {
+            lv_obj_clear_flag(s_counter_label, LV_OBJ_FLAG_HIDDEN);
+        }
+        if (s_status_label)
+        {
+            lv_obj_clear_flag(s_status_label, LV_OBJ_FLAG_HIDDEN);
+        }
+        if (s_qr_code)
+        {
+            lv_obj_add_flag(s_qr_code, LV_OBJ_FLAG_HIDDEN);
+        }
     }
 }
 
-//
-// LVGL HANDLER TASK
-//
 void UiConsumerTask::lvgl_handler_task(void* arg)
 {
     auto* cfg = static_cast<const LvglTaskConfig*>(arg);
-    configASSERT(cfg && "lvgl_handler_task: null config");
-
     auto* queue = static_cast<UiQueue*>(cfg->user_data);
-    configASSERT(queue && "lvgl_handler_task: missing UiQueue");
-
     UiMessage msg{};
 
     while (true)
@@ -110,39 +86,65 @@ void UiConsumerTask::lvgl_handler_task(void* arg)
         {
             switch (msg.type)
             {
-            case UiCommandType::SetLabelText:
-                if (s_label)
-                    lv_label_set_text(s_label, msg.text.data());
-                break;
-
-            case UiCommandType::SetStatusText:
-                if (s_status_label)
-                    lv_label_set_text(s_status_label, msg.text.data());
-                break;
-
-            case UiCommandType::SetCpuUsage:
-            {
-                int percent = msg.value;
-                if (percent < 0)   percent = 0;
-                if (percent > 100) percent = 100;
-
-                if (s_cpu_percent_label)
+            case UiCommandType::SetText:
+                if (s_counter_label)
                 {
-                    char buf[8];
-                    snprintf(buf, sizeof(buf), "%02d%%", percent);
-                    lv_label_set_text(s_cpu_percent_label, buf);
+                    lv_label_set_text(s_counter_label, msg.text.data());
                 }
                 break;
-            }
 
-            case UiCommandType::ClearScreen:
-                lv_obj_clean(lv_scr_act());
+            case UiCommandType::SetStatus:
+                // Auto-switch to labels when status/IP is received
+                set_view_mode(false);
+                if (s_status_label)
+                {
+                    lv_label_set_text(s_status_label, msg.text.data());
+                }
+                break;
+
+            case UiCommandType::ShowQrCode:
+                if (!s_qr_code)
+                {
+                    // 1. Create a white background "Card"
+                    lv_obj_t* qr_container = lv_obj_create(lv_scr_act());
+                    lv_obj_set_size(qr_container, 62, 62); // Almost full height of your 64px screen
+                    lv_obj_set_style_bg_color(qr_container, lv_color_white(), 0);
+                    lv_obj_set_style_border_width(qr_container, 0, 0);
+                    lv_obj_set_style_radius(qr_container, 0, 0);  // Sharp corners
+                    lv_obj_set_style_pad_all(qr_container, 2, 0); // Small margin
+                    lv_obj_center(qr_container);
+
+                    // 2. Create the QR code INSIDE the white container
+                    s_qr_code = lv_qrcode_create(qr_container);
+                    lv_qrcode_set_size(s_qr_code, 58);
+
+                    // 3. SET COLORS: Black modules on White background
+                    lv_qrcode_set_dark_color(s_qr_code, lv_color_black());
+                    lv_qrcode_set_light_color(s_qr_code, lv_color_white());
+
+                    lv_obj_center(s_qr_code);
+                }
+
+                lv_qrcode_update(s_qr_code, msg.text.data(), std::strlen(msg.text.data()));
+                set_view_mode(true);
+                break;
+
+            default:
                 break;
             }
         }
-
         lv_timer_handler();
         vTaskDelay(pdMS_TO_TICKS(cfg->handler_period_ms));
+    }
+}
+
+void UiConsumerTask::lvgl_tick_task(void* arg)
+{
+    auto* cfg = static_cast<const LvglTaskConfig*>(arg);
+    while (true)
+    {
+        lv_tick_inc(cfg->tick_period_ms);
+        vTaskDelay(pdMS_TO_TICKS(cfg->tick_period_ms));
     }
 }
 

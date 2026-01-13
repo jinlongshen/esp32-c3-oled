@@ -1,53 +1,56 @@
 #ifndef COMPONENTS_UI_INC_UI_QUEUE_H
 #define COMPONENTS_UI_INC_UI_QUEUE_H
 
+#include <algorithm>
 #include <array>
-#include <cstdint>
-
-#include <freertos/FreeRTOS.h>
-#include <freertos/queue.h>
+#include <cstring>
+#include <string_view>
+#include "freertos/FreeRTOS.h"
+#include "freertos/queue.h"
 
 namespace muc::ui
 {
 
-// -----------------------------------------------------------------------------
-// Updated command types
-// -----------------------------------------------------------------------------
-enum class UiCommandType : std::uint8_t
+enum class UiCommandType
 {
-    SetLabelText,
-    SetStatusText,
-    SetCpuUsage,
-    ClearScreen,
+    SetText,
+    SetStatus,
+    ShowQrCode
 };
 
-// -----------------------------------------------------------------------------
-// Updated message struct
-// -----------------------------------------------------------------------------
 struct UiMessage
 {
     UiCommandType type;
+    std::array<char, 128> text;
 
-    // Text payload (for label + status)
-    std::array<char, 64> text{};
-
-    // Numeric payload (for CPU usage)
-    int value = 0;
+    void set_payload(std::string_view sv)
+    {
+        size_t len = std::min(sv.length(), text.size() - 1);
+        std::memcpy(text.data(), sv.data(), len);
+        text[len] = '\0';
+    }
 };
 
-// -----------------------------------------------------------------------------
-// Queue wrapper
-// -----------------------------------------------------------------------------
 class UiQueue
 {
   public:
-    explicit UiQueue(std::size_t depth = 10);
+    explicit UiQueue(size_t queue_size)
+    {
+        m_handle = xQueueCreate(queue_size, sizeof(UiMessage));
+    }
 
-    bool send(const UiMessage& msg) const;
-    bool receive(UiMessage& msg) const;
+    bool send(const UiMessage& msg)
+    {
+        return xQueueSend(m_handle, &msg, 0) == pdTRUE;
+    }
+
+    bool receive(UiMessage& msg)
+    {
+        return xQueueReceive(m_handle, &msg, portMAX_DELAY) == pdTRUE;
+    }
 
   private:
-    QueueHandle_t m_queue;
+    QueueHandle_t m_handle;
 };
 
 } // namespace muc::ui

@@ -46,6 +46,8 @@ class Oled
         return m_geometry;
     }
 
+    void set_scan_mode(bool enable) noexcept;
+
   private:
     void initialize() noexcept;
     void setPageColumn(std::uint8_t page, std::uint8_t column) noexcept;

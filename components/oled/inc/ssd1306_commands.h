@@ -32,6 +32,8 @@ enum Command : std::uint8_t
 
     ResumeRAM = 0xA4,
     NormalDisplay = 0xA6,
+
+    SET_CONTRAST = 0x81,
 };
 
 } // namespace muc::ssd1306

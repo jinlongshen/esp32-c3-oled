@@ -1,5 +1,9 @@
 #include "provision.h"
 
+#include <cstdint>
+#include <cstdio>
+#include <cstring>
+
 #include <esp_event.h>
 #include <esp_log.h>
 #include <esp_wifi.h>
@@ -8,23 +12,31 @@
 #include <wifi_provisioning/manager.h>
 #include <wifi_provisioning/scheme_ble.h>
 
-#include "qrcode.h"
+#include "lvgl.h"
 
 namespace muc::provision
 {
 
-static const char* TAG = "PROVISION";
-static constexpr gpio_num_t BOO_BUTTON_GPIO = GPIO_NUM_9;
+namespace
+{
+constexpr const char* TAG = "PROVISION";
+constexpr gpio_num_t BOO_BUTTON_GPIO = GPIO_NUM_9;
+} // namespace
 
 Provision::Provision()
 {
     _wifi_event_group = xEventGroupCreate();
 }
 
-esp_err_t Provision::begin()
+esp_err_t Provision::begin(std::function<void(std::string_view)> on_qr_generated,
+                           std::function<void(std::string_view)> on_got_ip)
 {
-    // 1. Initialize NVS (Requirement for Wi-Fi/BT)
-    esp_err_t ret = nvs_flash_init();
+    // Store callbacks to communicate with UI
+    _on_qr_generated = on_qr_generated;
+    _on_got_ip = on_got_ip;
+
+    // 1. Initialize NVS
+    auto ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND)
     {
         ESP_ERROR_CHECK(nvs_flash_erase());
@@ -32,12 +44,12 @@ esp_err_t Provision::begin()
     }
     ESP_ERROR_CHECK(ret);
 
-    // 2. Network Interface & Event Loop
+    // 2. Network Interface
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
     esp_netif_create_default_wifi_sta();
 
-    // 3. Register Event Handlers
+    // 3. Register Event Handlers (Using std::int32_t)
     ESP_ERROR_CHECK(esp_event_handler_register(
         WIFI_PROV_EVENT, ESP_EVENT_ANY_ID, &Provision::event_handler, this));
     ESP_ERROR_CHECK(
@@ -49,14 +61,13 @@ esp_err_t Provision::begin()
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
     ESP_ERROR_CHECK(esp_wifi_init(&cfg));
 
-    // 5. Provisioning Manager Config (C++ Zero-init style)
+    // 5. Provisioning Manager Config
     wifi_prov_mgr_config_t config = {};
     config.scheme = wifi_prov_scheme_ble;
     config.scheme_event_handler = WIFI_PROV_SCHEME_BLE_EVENT_HANDLER_FREE_BTDM;
 
     ESP_ERROR_CHECK(wifi_prov_mgr_init(config));
 
-    // 6. Check if already provisioned
     bool provisioned = false;
     ESP_ERROR_CHECK(wifi_prov_mgr_is_provisioned(&provisioned));
 
@@ -72,50 +83,43 @@ esp_err_t Provision::begin()
         ESP_ERROR_CHECK(esp_wifi_start());
     }
 
-    // 7. Start the 500ms polling button task
-    xTaskCreate(Provision::button_task, "prov_btn_task", 4096, this, 5, NULL);
+    // 6. Start button polling task (4 * 1024 stack)
+    xTaskCreate(Provision::button_task, "prov_btn_task", 4096, this, 5, nullptr);
 
     return ESP_OK;
 }
 
 void Provision::start_provisioning()
 {
-    char service_name[12];
-    get_device_service_name(service_name, sizeof(service_name));
-    const char* pop = "abcd1234";
+    auto service_name = std::array<char, 12>{};
+    get_device_service_name(service_name.data(), service_name.size());
+    static constexpr const char* pop = "abcd1234";
 
-    // 1. Start provisioning service
-    ESP_ERROR_CHECK(
-        wifi_prov_mgr_start_provisioning(WIFI_PROV_SECURITY_1, (void*)pop, service_name, NULL));
+    ESP_ERROR_CHECK(wifi_prov_mgr_start_provisioning(
+        WIFI_PROV_SECURITY_1, (void*)pop, service_name.data(), nullptr));
 
-    // 2. Generate payload for the mobile app
-    char qr_payload[150];
-    snprintf(qr_payload,
-             sizeof(qr_payload),
-             "{\"ver\":\"v1\",\"name\":\"%s\",\"pop\":\"%s\",\"transport\":\"ble\"}",
-             service_name,
-             pop);
+    auto qr_payload = std::array<char, 150>{};
+    std::snprintf(qr_payload.data(),
+                  qr_payload.size(),
+                  "{\"ver\":\"v1\",\"name\":\"%s\",\"pop\":\"%s\",\"transport\":\"ble\"}",
+                  service_name.data(),
+                  pop);
 
-    // 3. Print to console
-    ESP_LOGI(TAG, "=================================================");
-    ESP_LOGI(TAG, "Scan this QR code with ESP-Provisioning App:");
+    // 1. Notify UI to show QR Code via the callback
+    // This sends the payload to main.cpp -> UiApi -> UiConsumerTask (LVGL)
+    if (_on_qr_generated)
+    {
+        _on_qr_generated(std::string_view{qr_payload.data()});
+    }
 
-    // Default config in this component version automatically uses the console
-    esp_qrcode_config_t cfg = ESP_QRCODE_CONFIG_DEFAULT();
-    esp_qrcode_generate(&cfg, qr_payload);
-
-    ESP_LOGI(TAG, "Payload: %s", qr_payload);
-    ESP_LOGI(TAG, "=================================================");
+    // 2. Console logging (Standard text only)
+    ESP_LOGI(TAG, "Provisioning started. Service: %s, POP: %s", service_name.data(), pop);
+    ESP_LOGD(TAG, "QR Payload: %s", qr_payload.data());
 }
 
-void Provision::wait_for_connection()
+void Provision::event_handler(void* arg, esp_event_base_t base, std::int32_t id, void* data)
 {
-    xEventGroupWaitBits(_wifi_event_group, CONNECTED_BIT, pdFALSE, pdTRUE, portMAX_DELAY);
-}
-
-void Provision::event_handler(void* arg, esp_event_base_t base, int32_t id, void* data)
-{
-    Provision* self = static_cast<Provision*>(arg);
+    auto* self = static_cast<Provision*>(arg);
 
     if (base == WIFI_EVENT && id == WIFI_EVENT_STA_START)
     {
@@ -123,28 +127,32 @@ void Provision::event_handler(void* arg, esp_event_base_t base, int32_t id, void
     }
     else if (base == IP_EVENT && id == IP_EVENT_STA_GOT_IP)
     {
-        // Cast the data to the correct IP event structure
-        ip_event_got_ip_t* event = (ip_event_got_ip_t*)data;
+        auto* event = static_cast<ip_event_got_ip_t*>(data);
+        auto ip_buf = std::array<char, 16>{};
+        esp_ip4addr_ntoa(&event->ip_info.ip, ip_buf.data(), ip_buf.size());
 
-        // Print the IP address to the terminal
-        ESP_LOGI(TAG, "--------------------------------------------");
-        ESP_LOGI(TAG, "Connected! IP Address: " IPSTR, IP2STR(&event->ip_info.ip));
-        ESP_LOGI(TAG, "--------------------------------------------");
+        ESP_LOGI(TAG, "Connected! IP Address: %s", ip_buf.data());
+
+        // Notify UI to hide QR and show the dynamic IP from the router
+        if (self->_on_got_ip)
+        {
+            self->_on_got_ip(std::string_view{ip_buf.data()});
+        }
 
         xEventGroupSetBits(self->_wifi_event_group, CONNECTED_BIT);
     }
 }
 
-void Provision::get_device_service_name(char* service_name, size_t max)
+void Provision::get_device_service_name(char* service_name, std::size_t max)
 {
-    uint8_t eth_mac[6];
-    esp_wifi_get_mac(WIFI_IF_STA, eth_mac);
-    snprintf(service_name, max, "PROV_%02X%02X%02X", eth_mac[3], eth_mac[4], eth_mac[5]);
+    auto eth_mac = std::array<std::uint8_t, 6>{};
+    esp_wifi_get_mac(WIFI_IF_STA, eth_mac.data());
+    std::snprintf(service_name, max, "PROV_%02X%02X%02X", eth_mac[3], eth_mac[4], eth_mac[5]);
 }
 
 void Provision::forceReProvision()
 {
-    ESP_LOGI(TAG, "Clearing Wi-Fi credentials and rebooting to Provision Mode...");
+    ESP_LOGW(TAG, "Resetting provisioning...");
     wifi_prov_mgr_reset_provisioning();
     vTaskDelay(pdMS_TO_TICKS(100));
     esp_restart();
@@ -152,33 +160,25 @@ void Provision::forceReProvision()
 
 void Provision::button_task(void* pvParameters)
 {
-    Provision* self = static_cast<Provision*>(pvParameters);
-    int consecutive_press_count = 0;
-    const int REQUIRED_COUNT = 4; // 4 * 500ms = 2 seconds
-    const int POLL_PERIOD_MS = 500;
+    auto* self = static_cast<Provision*>(pvParameters);
+    auto consecutive_press_count = std::int32_t{0};
+    static constexpr auto REQUIRED_COUNT = 4;
+    static constexpr auto POLL_PERIOD_MS = 500;
 
-    // Configure GPIO 9 (C++ Zero-init style to satisfy compiler)
     gpio_config_t io_conf = {};
     io_conf.pin_bit_mask = (1ULL << BOO_BUTTON_GPIO);
     io_conf.mode = GPIO_MODE_INPUT;
     io_conf.pull_up_en = GPIO_PULLUP_ENABLE;
     io_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
     io_conf.intr_type = GPIO_INTR_DISABLE;
-
     gpio_config(&io_conf);
-
-    ESP_LOGI(TAG, "Button monitor started (Polling: %dms)", POLL_PERIOD_MS);
 
     while (true)
     {
-        // Read BOO button (Active Low)
         if (gpio_get_level(BOO_BUTTON_GPIO) == 0)
         {
-            consecutive_press_count++;
-
-            if (consecutive_press_count >= REQUIRED_COUNT)
+            if (++consecutive_press_count >= REQUIRED_COUNT)
             {
-                ESP_LOGW(TAG, "2-second threshold reached! Resetting...");
                 self->forceReProvision();
             }
         }
@@ -186,7 +186,6 @@ void Provision::button_task(void* pvParameters)
         {
             consecutive_press_count = 0;
         }
-
         vTaskDelay(pdMS_TO_TICKS(POLL_PERIOD_MS));
     }
 }

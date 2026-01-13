@@ -1,9 +1,5 @@
 #include "ui_api.h"
-
-#include <esp_log.h>
-
-#include <algorithm>
-#include <cstring>
+#include "ui_queue.h"
 
 namespace muc::ui
 {
@@ -15,53 +11,26 @@ UiApi::UiApi(UiQueue& queue)
 
 void UiApi::set_text(std::string_view text)
 {
-    ESP_LOGI("UI_API", "set_text: '%.*s'", int(text.size()), text.data());
-
-    UiMessage msg{};
-    msg.type = UiCommandType::SetLabelText;
-
-    const size_t n = std::min(text.size(), sizeof(msg.text) - 1);
-    std::memcpy(msg.text.data(), text.data(), n);
-    msg.text[n] = '\0';
-
-    if (!m_queue.send(msg))
-        ESP_LOGE("UI_API", "Queue send FAILED");
+    UiMessage msg;
+    msg.type = UiCommandType::SetText;
+    msg.set_payload(text); // Helper in UiMessage to copy string safely
+    m_queue.send(msg);
 }
 
-void UiApi::set_status(std::string_view text)
+void UiApi::set_status(std::string_view status)
 {
-    ESP_LOGI("UI_API", "set_status: '%.*s'", int(text.size()), text.data());
-
-    UiMessage msg{};
-    msg.type = UiCommandType::SetStatusText;
-
-    const size_t n = std::min(text.size(), sizeof(msg.text) - 1);
-    std::memcpy(msg.text.data(), text.data(), n);
-    msg.text[n] = '\0';
-
-    if (!m_queue.send(msg))
-        ESP_LOGE("UI_API", "Queue send FAILED");
+    UiMessage msg;
+    msg.type = UiCommandType::SetStatus;
+    msg.set_payload(status);
+    m_queue.send(msg);
 }
 
-void UiApi::set_cpu_usage(int percent)
+void UiApi::show_provision_qr(std::string_view payload)
 {
-    ESP_LOGI("UI_API", "set_cpu_usage: %d", percent);
-
-    UiMessage msg{};
-    msg.type = UiCommandType::SetCpuUsage;
-    msg.value = percent;
-
-    if (!m_queue.send(msg))
-        ESP_LOGE("UI_API", "Queue send FAILED");
-}
-
-void UiApi::clear_screen()
-{
-    UiMessage msg{};
-    msg.type = UiCommandType::ClearScreen;
-
-    if (!m_queue.send(msg))
-        ESP_LOGE("UI_API", "Queue send FAILED");
+    UiMessage msg;
+    msg.type = UiCommandType::ShowQrCode;
+    msg.set_payload(payload);
+    m_queue.send(msg);
 }
 
 } // namespace muc::ui

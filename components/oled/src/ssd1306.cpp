@@ -271,5 +271,34 @@ void Oled::setPageColumn(std::uint8_t page, std::uint8_t column) noexcept
     ESP_LOGD(TAG, "setPageColumn: page=%u column=%u hw_column=%u", page, column, hw_column);
 }
 
+void Oled::set_scan_mode(bool enable) noexcept
+{
+
+    if (enable)
+    {
+        // 1. Lower Contrast: reduces "blooming/glow" for the camera
+        (void)sendCmd(Command::SetContrast);
+        std::array<std::uint8_t, 2> contrast_buf = {0x00,
+                                                    0x30}; // 0x00 = control byte, 0x30 = value
+        (void)m_dev.write(std::span<const std::uint8_t>(contrast_buf.data(), 2));
+
+        // 2. Increase Osc Frequency: reduces "rolling black bars" in video
+        (void)sendCmd(Command::SetClockDiv);
+        std::array<std::uint8_t, 2> clock_buf = {0x00, 0xF0}; // 0xF0 = Max freq
+        (void)m_dev.write(std::span<const std::uint8_t>(clock_buf.data(), 2));
+    }
+    else
+    {
+        // Restore to normal viewing settings (Defaults from your initialize() function)
+        (void)sendCmd(Command::SetContrast);
+        std::array<std::uint8_t, 2> contrast_buf = {0x00, 0x7F};
+        (void)m_dev.write(std::span<const std::uint8_t>(contrast_buf.data(), 2));
+
+        (void)sendCmd(Command::SetClockDiv);
+        std::array<std::uint8_t, 2> clock_buf = {0x00, 0x80};
+        (void)m_dev.write(std::span<const std::uint8_t>(clock_buf.data(), 2));
+    }
+}
+
 } // namespace ssd1306
 } // namespace muc
