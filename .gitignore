@@ -41,7 +41,6 @@
 *.dwo
 
 # ESP-IDF Generated files
-sdkconfig
 sdkconfig.old
 
 # build
