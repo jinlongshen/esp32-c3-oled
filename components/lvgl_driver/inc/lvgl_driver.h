@@ -2,6 +2,7 @@
 #define COMPONENT_LVGL_DRIVER_H
 
 #include <cstdint>
+
 #include "lvgl.h"
 #include "ssd1306.h"
 

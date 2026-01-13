@@ -3,8 +3,8 @@
 
 #include <cstdint>
 
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
 
 // All these functions are C symbols that FreeRTOS / ESP-IDF expects,
 // so we must keep them in an extern "C" block when included from C++.

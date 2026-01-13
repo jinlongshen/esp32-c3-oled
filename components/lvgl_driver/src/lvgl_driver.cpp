@@ -1,13 +1,14 @@
 #include "lvgl_driver.h"
 
+#include <algorithm>
 #include <array>
 #include <cstdint>
 #include <cstdio>
 #include <span>
-#include <algorithm>
 
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+
 #include "display_geometry.h"
 
 // #include "lv_font_custom_12.h"

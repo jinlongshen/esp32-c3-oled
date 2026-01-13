@@ -5,11 +5,12 @@
 #include <cstring>
 #include <span>
 
-#include "esp_heap_caps.h"
-#include "esp_log.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/FreeRTOSConfig.h"
-#include "freertos/task.h"
+#include <freertos/FreeRTOS.h>
+#include <freertos/FreeRTOSConfig.h>
+#include <freertos/task.h>
+
+#include <esp_heap_caps.h>
+#include <esp_log.h>
 
 namespace
 {

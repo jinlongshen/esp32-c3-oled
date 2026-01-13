@@ -1,4 +1,5 @@
-#pragma once
+#ifndef COMPONENTS_OLED_INC_DISPLAY_GEOMETRY_H
+#define COMPONENTS_OLED_INC_DISPLAY_GEOMETRY_H
 
 #include <cstdint>
 
@@ -42,3 +43,5 @@ constexpr std::size_t kRamBufferBytes = static_cast<std::size_t>(kDefaultGeometr
 constexpr std::size_t kPageCount = static_cast<std::size_t>(kDefaultGeometry.ram_pages);
 
 } // namespace muc::ssd1306
+
+#endif // COMPONENTS_OLED_INC_DISPLAY_GEOMETRY_H

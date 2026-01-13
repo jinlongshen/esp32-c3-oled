@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <cstring>
 
-#include "esp_log.h"
+#include <esp_log.h>
 
 namespace
 {

@@ -1,12 +1,14 @@
 #include <cstdio>
 
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+
+#include <esp_log.h>
+
 #include "Hooks.h"
 #include "I2CBus.h"
 #include "I2CDevice.h"
 #include "display_geometry.h"
-#include "esp_log.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
 #include "lvgl_driver.h"
 #include "ssd1306.h"
 #include "ui_api.h"

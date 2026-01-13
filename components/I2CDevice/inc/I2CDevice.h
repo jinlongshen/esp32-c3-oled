@@ -1,9 +1,13 @@
 #ifndef COMPONENTS_I2CDEVICE_I2CDEVICE_H
 #define COMPONENTS_I2CDEVICE_I2CDEVICE_H
 
+#include <cstdint>
+#include <span>
+
+#include <driver/i2c_master.h>
+
 #include "II2CBus.h"
 #include "II2CDevice.h"
-#include "driver/i2c_master.h"
 
 namespace muc
 {

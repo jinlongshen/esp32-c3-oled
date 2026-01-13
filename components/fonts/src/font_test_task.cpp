@@ -1,14 +1,14 @@
+#include <esp_log.h>
+
+#include <array>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
-#include <array>
 
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "esp_log.h"
-
-#include "ssd1306.h"
 #include "FontRenderer.h"
+#include "ssd1306.h"
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
 
 namespace
 {

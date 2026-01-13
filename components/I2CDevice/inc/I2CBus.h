@@ -4,8 +4,9 @@
 #include <cstdint>
 #include <mutex>
 
+#include <driver/i2c_master.h>
+
 #include "II2CBus.h"
-#include "driver/i2c_master.h"
 
 namespace muc
 {

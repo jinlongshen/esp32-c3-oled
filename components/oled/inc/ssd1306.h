@@ -6,11 +6,11 @@
 #include <cstdint>
 #include <span>
 
-#include "esp_err.h"
+#include <esp_err.h>
 
 #include "II2CDevice.h"
-#include "ssd1306_commands.h"
 #include "display_geometry.h"
+#include "ssd1306_commands.h"
 
 namespace muc
 {
