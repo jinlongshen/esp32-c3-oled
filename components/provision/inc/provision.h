@@ -1,13 +1,15 @@
-#ifndef COMPONENTS_PROVISION_INC_PROVISION_H_
-#define COMPONENTS_PROVISION_INC_PROVISION_H_
+#ifndef COMPONENTS_PROVISION_INC_PROVISION_H
+#define COMPONENTS_PROVISION_INC_PROVISION_H
 
-#include <esp_err.h>
-#include <esp_event.h>
 #include <cstdint>
 #include <functional>
 #include <string_view>
+
 #include <freertos/FreeRTOS.h>
 #include <freertos/event_groups.h>
+
+#include <esp_err.h>
+#include <esp_event.h>
 
 namespace muc::provision
 {
@@ -29,11 +31,11 @@ class Provision
     void forceReProvision();
 
   private:
-    static constexpr std::uint32_t CONNECTED_BIT = BIT0;
-    EventGroupHandle_t _wifi_event_group;
+    static constexpr std::uint32_t s_CONNECTED_BIT = BIT0;
+    EventGroupHandle_t m_wifi_event_group;
 
-    std::function<void(std::string_view)> _on_qr_generated;
-    std::function<void(std::string_view)> _on_got_ip;
+    std::function<void(std::string_view)> m_on_qr_generated;
+    std::function<void(std::string_view)> m_on_got_ip;
 
     void start_provisioning();
     static void event_handler(void* arg, esp_event_base_t base, std::int32_t id, void* data);
@@ -43,4 +45,4 @@ class Provision
 
 } // namespace muc::provision
 
-#endif // COMPONENTS_PROVISION_INC_PROVISION_H_
+#endif // COMPONENTS_PROVISION_INC_PROVISION_H

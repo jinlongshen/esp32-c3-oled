@@ -25,15 +25,15 @@ constexpr gpio_num_t BOO_BUTTON_GPIO = GPIO_NUM_9;
 
 Provision::Provision()
 {
-    _wifi_event_group = xEventGroupCreate();
+    m_wifi_event_group = xEventGroupCreate();
 }
 
 esp_err_t Provision::begin(std::function<void(std::string_view)> on_qr_generated,
                            std::function<void(std::string_view)> on_got_ip)
 {
     // Store callbacks to communicate with UI
-    _on_qr_generated = on_qr_generated;
-    _on_got_ip = on_got_ip;
+    m_on_qr_generated = on_qr_generated;
+    m_on_got_ip = on_got_ip;
 
     // 1. Initialize NVS
     auto ret = nvs_flash_init();
@@ -107,9 +107,9 @@ void Provision::start_provisioning()
 
     // 1. Notify UI to show QR Code via the callback
     // This sends the payload to main.cpp -> UiApi -> UiConsumerTask (LVGL)
-    if (_on_qr_generated)
+    if (m_on_qr_generated)
     {
-        _on_qr_generated(std::string_view{qr_payload.data()});
+        m_on_qr_generated(std::string_view{qr_payload.data()});
     }
 
     // 2. Console logging (Standard text only)
@@ -120,6 +120,7 @@ void Provision::start_provisioning()
 void Provision::event_handler(void* arg, esp_event_base_t base, std::int32_t id, void* data)
 {
     auto* self = static_cast<Provision*>(arg);
+    configASSERT(self != nullptr && "Provision::event_handler received null parameter");
 
     if (base == WIFI_EVENT && id == WIFI_EVENT_STA_START)
     {
@@ -134,12 +135,12 @@ void Provision::event_handler(void* arg, esp_event_base_t base, std::int32_t id,
         ESP_LOGI(TAG, "Connected! IP Address: %s", ip_buf.data());
 
         // Notify UI to hide QR and show the dynamic IP from the router
-        if (self->_on_got_ip)
+        if (self->m_on_got_ip)
         {
-            self->_on_got_ip(std::string_view{ip_buf.data()});
+            self->m_on_got_ip(std::string_view{ip_buf.data()});
         }
 
-        xEventGroupSetBits(self->_wifi_event_group, CONNECTED_BIT);
+        xEventGroupSetBits(self->m_wifi_event_group, s_CONNECTED_BIT);
     }
 }
 
@@ -161,6 +162,7 @@ void Provision::forceReProvision()
 void Provision::button_task(void* pvParameters)
 {
     auto* self = static_cast<Provision*>(pvParameters);
+    configASSERT(self != nullptr && "Provision::button_task received null parameter");
     auto consecutive_press_count = std::int32_t{0};
     static constexpr auto REQUIRED_COUNT = 4;
     static constexpr auto POLL_PERIOD_MS = 500;
