@@ -68,21 +68,16 @@ extern "C" void app_main()
 
     // 6. Initialize Provisioning with UI Callbacks
     static muc::provision::Provision provisioning;
-
-    // Pointer to static api to resolve capture warnings
-    auto* api_ptr = &ui_api;
-    auto* oled_ptr = &oled;
-
     provisioning.begin(
-        [api_ptr, oled_ptr](std::string_view qr_payload)
+        [&ui_api, &oled](std::string_view qr_payload)
         {
-            oled_ptr->set_scan_mode(true); // Dim & Speed up for camera
-            api_ptr->show_provision_qr(qr_payload);
+            oled.set_scan_mode(true); // Dim & Speed up for camera
+            ui_api.show_provision_qr(qr_payload);
         },
-        [api_ptr, oled_ptr](std::string_view ip_address)
+        [&ui_api, &oled](std::string_view ip_address)
         {
-            oled_ptr->set_scan_mode(false);  // Restore pretty colors/speed
-            api_ptr->set_status(ip_address); // This must also trigger QR deletion
+            oled.set_scan_mode(false);     // Restore pretty colors/speed
+            ui_api.set_status(ip_address); // This must also trigger QR deletion
         });
 
     // 7. MAIN LOOP: Update Counter
