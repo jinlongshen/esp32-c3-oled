@@ -5,8 +5,9 @@
 #include <array>
 #include <cstring>
 #include <string_view>
-#include "freertos/FreeRTOS.h"
-#include "freertos/queue.h"
+
+#include <freertos/FreeRTOS.h>
+#include <freertos/queue.h>
 
 namespace muc::ui
 {
@@ -18,17 +19,13 @@ enum class UiCommandType
     ShowQrCode
 };
 
-struct UiMessage
+class UiMessage
 {
+  public:
+    void set_payload(std::string_view sv);
+
     UiCommandType type;
     std::array<char, 128> text;
-
-    void set_payload(std::string_view sv)
-    {
-        size_t len = std::min(sv.length(), text.size() - 1);
-        std::memcpy(text.data(), sv.data(), len);
-        text[len] = '\0';
-    }
 };
 
 class UiQueue

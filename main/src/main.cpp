@@ -56,7 +56,7 @@ extern "C" void app_main()
                 nullptr);
 
     // 4. Create the labels (Top: Counter, Bottom: Status)
-    xTaskCreate(muc::ui::UiConsumerTask::ui_init_task, "ui_init", 4 * 1024, &ui_api, 5, nullptr);
+    xTaskCreate(muc::ui::UiConsumerTask::ui_init_task, "ui_init", 4 * 1024, nullptr, 5, nullptr);
 
     // ---------------------------------------------------------------------
     // 5. Optional font test tasks (kept exactly as requested)

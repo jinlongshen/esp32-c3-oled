@@ -1,10 +1,19 @@
 #include "ui_queue.h"
+
 #include <algorithm>
 #include <cstring>
+
 #include "ui_api.h"
 
 namespace muc::ui
 {
+
+void UiMessage::set_payload(std::string_view sv)
+{
+    size_t len = std::min(sv.length(), text.size() - 1);
+    std::memcpy(text.data(), sv.data(), len);
+    text[len] = '\0';
+}
 
 UiApi::UiApi(UiQueue& queue)
 : m_queue(queue)
