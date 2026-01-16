@@ -1,4 +1,5 @@
 #include <array>
+#include <atomic>
 #include <cinttypes>
 #include <cstdint>
 #include <cstdio>
@@ -11,10 +12,12 @@
 #include "Hooks.h"
 #include "I2CBus.h"
 #include "I2CDevice.h"
+#include "ProvisionHooks.h"
 #include "display_geometry.h"
 #include "lvgl_driver.h"
 #include "provision.h"
 #include "ssd1306.h"
+#include "stockservice.h"
 #include "ui_api.h"
 #include "ui_consumer_task.h"
 #include "ui_queue.h"
@@ -68,25 +71,36 @@ extern "C" void app_main()
 
     // 6. Initialize Provisioning with UI Callbacks
     static muc::provision::Provision provisioning;
-    provisioning.begin(
-        [&ui_api, &oled](std::string_view qr_payload)
-        {
-            oled.set_scan_mode(true); // Dim & Speed up for camera
-            ui_api.show_provision_qr(qr_payload);
-        },
-        [&ui_api, &oled](std::string_view ip_address)
-        {
-            oled.set_scan_mode(false);     // Restore pretty colors/speed
-            ui_api.set_status(ip_address); // This must also trigger QR deletion
-        });
 
-    // 7. MAIN LOOP: Update Counter
+    provisioning.begin([&](std::string_view qr_payload)
+                       { muc::provisionhooks::on_qr(ui_api, oled, qr_payload); },
+                       [&](std::string_view ip_address)
+                       { muc::provisionhooks::on_success(ui_api, oled, ip_address); });
+
+    // 7. MAIN LOOP: Update Counter + Fetch Stock (when allowed)
     auto i = std::int32_t{0};
+    muc::stock::StockQuote q{};
+
     while (true)
     {
-        auto buf = std::array<char, 16>{};
-        // Use PRIi32 to portably print std::int32_t
-        std::snprintf(buf.data(), buf.size(), "%" PRIi32, i++);
+        // Fetch stock price only when allowed
+        if (muc::provisionhooks::g_can_fetch_stock.load())
+        {
+            if (muc::stock::fetch_nvda_price(q))
+            {
+                ESP_LOGI("MAIN", "NVDA: %.2f USD", q.price);
+            }
+            else
+            {
+                ESP_LOGE("MAIN", "Failed to fetch NVDA price");
+            }
+        }
+
+        // Build two-line display buffer
+        auto buf = std::array<char, 32>{};
+
+        std::snprintf(buf.data(), buf.size(), "%" PRIi32 "\nNividia %.2f", i++, q.price);
+
         ui_api.set_text(std::string_view{buf.data()});
 
         vTaskDelay(pdMS_TO_TICKS(1000));
