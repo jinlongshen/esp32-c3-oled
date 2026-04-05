@@ -80,12 +80,19 @@ extern "C" void app_main()
     // 7. MAIN LOOP: Update Counter + Fetch Stock (when allowed)
     auto i = std::int32_t{0};
     muc::stock::StockQuote q{};
+    static auto last_fetch = std::chrono::steady_clock::now();
+    constexpr auto FETCH_INTERVAL = std::chrono::hours(2);
+    bool first_fetch = true;
 
     while (true)
     {
         // Fetch stock price only when allowed
-        if (muc::provisionhooks::g_can_fetch_stock.load())
+        auto now = std::chrono::steady_clock::now();
+        if (muc::provisionhooks::g_can_fetch_stock.load() &&
+            (first_fetch || (now - last_fetch >= FETCH_INTERVAL)))
         {
+            first_fetch = false;
+            last_fetch = now;
             if (muc::stock::fetch_nvda_price(q))
             {
                 ESP_LOGI("MAIN", "NVDA: %.2f USD", q.price);
@@ -98,9 +105,14 @@ extern "C" void app_main()
 
         // Build two-line display buffer
         auto buf = std::array<char, 32>{};
-
-        std::snprintf(buf.data(), buf.size(), "%" PRIi32 "\nNividia %.2f", i++, q.price);
-
+        if (q.price > 0.0)
+        {
+            std::snprintf(buf.data(), buf.size(), "%" PRIi32 "\nN: %.2f", i++, q.price);
+        }
+        else
+        {
+            std::snprintf(buf.data(), buf.size(), "%" PRIi32 "\nN: --.--", i++);
+        }
         ui_api.set_text(std::string_view{buf.data()});
 
         vTaskDelay(pdMS_TO_TICKS(1000));

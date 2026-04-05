@@ -50,3 +50,14 @@ build/
 # vscode
 managed_components
 dependencies.lock
+
+# AI
+.claw
+# Claw Code local artifacts
+.claw/settings.local.json
+.claw/sessions/
+
+# Claude/Claw AI Metadata
+.claw.json
+CLAW.md
+claude_cli_config.md
